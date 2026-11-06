@@ -319,8 +319,7 @@ void CaosmoProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     for (auto& g : gVenv) g.kill();
     for (int i = 0; i < kNumAttr; ++i) gAttr[i].reset ((uint32_t) i * 13u + 5u);
     heldCount = 0; for (auto& h : held) h = 0; lastNote = -1; loopPos = 0;
-    limWasOn = mr.limon.on();
-    setLatencySamples (limWasOn ? master.latency() : 0);
+    setLatencySamples (master.latency()); // constant: the look-ahead delay runs whether or not the limiter is on
     if (shapesDirtyFromTree) syncShapesFromTree();
 }
 
@@ -1029,9 +1028,6 @@ void CaosmoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi
         }
     }
     buffer.clear();
-
-    const bool lim = mr.limon.on();
-    if (lim != limWasOn) { setLatencySamples (lim ? master.latency() : 0); limWasOn = lim; }
 
     if (shapesPending.load())
     {

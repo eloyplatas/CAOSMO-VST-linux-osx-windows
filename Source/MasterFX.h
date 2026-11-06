@@ -419,6 +419,17 @@ struct MasterChain
                 limMin = std::min (limMin, limG);
             }
         }
+        else
+        {
+            // limiter off: keep the same look-ahead delay so the plugin's latency never changes
+            for (int k = 0; k < n; ++k)
+            {
+                laBuf[0][(size_t) laW] = L[k]; laBuf[1][(size_t) laW] = R[k]; gBuf[(size_t) laW] = 1.f;
+                if (++laW > laLen) laW = 0;
+                L[k] = laBuf[0][(size_t) laW]; R[k] = laBuf[1][(size_t) laW];
+            }
+            limG = 1.f;
+        }
         limGR.store (-juce::Decibels::gainToDecibels (limMin, -60.f));
         // output gain + meters
         float tp = 0;

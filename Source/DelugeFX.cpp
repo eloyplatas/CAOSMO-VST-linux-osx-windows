@@ -129,9 +129,10 @@ void DelugeRack::process (float* L, float* R, int numSamples, const DelugeParams
     ModFXType modType = static_cast<ModFXType> (std::clamp (p.modType, 0, 7));
     // GlobalEffectable::getActiveModFXType: a mod FX with its depth at minimum is off
     if (p.modDepth == 0 && modType != ModFXType::GRAIN) modType = ModFXType::NONE;
-    if (p.modType != I.lastModType)
+    // track the effective type: depth 0 turns the mod FX off, and raising it again must re-allocate the buffer
+    if ((int) modType != I.lastModType)
     {
-        I.lastModType = p.modType;
+        I.lastModType = (int) modType;
         if (modType == ModFXType::CHORUS || modType == ModFXType::CHORUS_STEREO || modType == ModFXType::FLANGER
             || modType == ModFXType::WARBLE || modType == ModFXType::DIMENSION)
             I.modfx.setupBuffer();
