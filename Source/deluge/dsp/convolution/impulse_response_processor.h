@@ -16,13 +16,13 @@
  */
 
 #pragma once
-// Modified by Eloy Platas / Caosmo, 2026-11-06: the Argon/NEON path is compiled only on ARM; desktop builds
+// Modified by Eloy Platas / Caosmo, 2026-11-06: the Argon/NEON path is compiled only on the Deluge hardware (never when CAOSMO_PORTABLE is set, including on desktop ARM such as Apple Silicon); desktop builds
 // use the upstream scalar path (convolveScalar), which upstream documents as bit-identical.
 
 #include "dsp/stereo_sample.h"
 #include "util/fixedpoint.h"
 #include <algorithm>
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && !defined(CAOSMO_PORTABLE)
 #include <argon.hpp>
 #endif
 #include <array>
@@ -69,13 +69,13 @@ private:
 
 	/// x points at the first new input, with HISTORY_SIZE older inputs before it
 	static void convolve(const StereoSample* x, std::span<StereoSample> output) {
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && !defined(CAOSMO_PORTABLE)
 		convolveScalar(x, output, convolveNeon(x, output));
 #else
 		convolveScalar(x, output, 0);
 #endif
 	}
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && !defined(CAOSMO_PORTABLE)
 	// Every coefficient is even, so vqrdmulh by half of one - round(2 * x * (h / 2) / 2^32) - is exactly smmulr by
 	// it: round(x * h / 2^32). It can't saturate, as no half coefficient is INT32_MIN
 	constexpr static size_t NUM_COEFFICIENT_VECTORS = (IR_SIZE + 3) / 4;

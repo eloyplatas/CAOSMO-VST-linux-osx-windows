@@ -42,13 +42,14 @@ set(DELUGE_SOURCES
     Source/deluge/shim/deluge_support.cpp)
 # The Deluge code is C++23 with GNU attributes: GCC/Clang get gnu++23 (gnu++2b on older AppleClang), Windows uses clang-cl.
 if (MSVC)
-    set(DELUGE_CXX_FLAGS "/std:c++latest;-Wno-everything")
+    set(DELUGE_CXX_FLAGS "/std:c++latest;-Wno-everything;/FI${CMAKE_CURRENT_SOURCE_DIR}/Source/deluge/shim/caosmo_prelude.h")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
-    set(DELUGE_CXX_FLAGS "-std=gnu++2b;-w")
+    set(DELUGE_CXX_FLAGS "-std=gnu++2b;-w;-include;${CMAKE_CURRENT_SOURCE_DIR}/Source/deluge/shim/caosmo_prelude.h")
 else()
-    set(DELUGE_CXX_FLAGS "-std=gnu++23;-w")
+    set(DELUGE_CXX_FLAGS "-std=gnu++23;-w;-include;${CMAKE_CURRENT_SOURCE_DIR}/Source/deluge/shim/caosmo_prelude.h")
 endif()
 set_source_files_properties(${DELUGE_SOURCES} PROPERTIES
+    COMPILE_DEFINITIONS "CAOSMO_PORTABLE=1"
     COMPILE_OPTIONS "${DELUGE_CXX_FLAGS}"
     INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/Source/deluge/shim;${CMAKE_CURRENT_SOURCE_DIR}/Source/deluge;${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
