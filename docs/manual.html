@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caosmo — Manual</title>
+<style>
+:root{--bg:#111318;--panel:#1a1d24;--line:#2e3340;--text:#d8dce4;--dim:#8790a2;--acc:#3fd0c9;--acc2:#9b8cff}
+body{background:var(--bg);color:var(--text);font:15px/1.6 system-ui,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:32px 20px 80px}
+h1{color:var(--acc);letter-spacing:.06em}h2{color:var(--acc2);border-bottom:1px solid var(--line);padding-bottom:4px;margin-top:2.2em}
+h3{color:var(--acc);margin-bottom:.2em}code,kbd{background:var(--panel);padding:1px 5px;border-radius:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{color:var(--dim)}
+.dim{color:var(--dim)}nav a{color:var(--acc);margin-right:12px}
+</style></head><body><main>
+<h1>CAOSMO</h1>
+<p class="dim">Sintetizador polifónico de caos · versión 0.4 · Eloy Platas</p>
+<nav><a href="#inicio">Inicio rápido</a><a href="#main">MAIN</a><a href="#motores">Motores</a><a href="#mod">Moduladores</a><a href="#matrix">Matriz</a><a href="#master">Master y FX</a><a href="#presets">Presets</a><a href="#ajustes">Ajustes</a><a href="#atajos">Atajos</a></nav>
+
+<h2 id="inicio">Inicio rápido</h2>
+<ol>
+<li>Carga <b>Caosmo</b> en una pista de instrumento. La capa 1 arranca con el motor <b>Kuramoto</b>.</li>
+<li>Pulsa el nombre del preset (arriba) o <b>BROWSE</b> para elegir uno de los 128 presets de fábrica.</li>
+<li>En <b>MAIN</b>, mueve <i>Cut</i> en FILTER y los tiempos de ENV GEN.</li>
+<li>Elige un motor en la capa 2: cada nota sonará por las dos capas.</li>
+<li>En <b>MODULATORS</b> pulsa <b>ASSIGN</b> en un LFO y luego haz clic en cualquier control: queda conectado.</li>
+<li>En <b>MASTER</b> ajusta EQ, saturador, compresor y limitador; en <b>FX</b> elige efectos para los buses A, B y C.</li>
+</ol>
+
+<h2 id="main">Página MAIN</h2>
+<p>Tres <b>capas</b> idénticas. Cada nota suena por todas las capas con motor, cada una con su propia cadena. El título de cada contenedor es un menú: <b>Copy</b>, <b>Paste</b> (con o sin rutas de modulación), <b>Vary</b> (±15&nbsp;%), <b>Randomise</b>; el título LANE añade <b>Copy to Lane</b>.</p>
+<table>
+<tr><th>Bloque</th><th>Qué hace</th></tr>
+<tr><td>LANE</td><td>Motor, <b>PWR</b> (apaga la capa y ahorra CPU; sus fuentes dejan de modular), <b>S/M</b> (solo y mute: no ahorran CPU), canal MIDI de la capa (Omni o 1–16).</td></tr>
+<tr><td>DRIFT</td><td>Desviación estática por nota de afinación, filtro y nivel (Off/Subtle/Moderate/Heavy).</td></tr>
+<tr><td>PITCH</td><td>Semitonos (±36) y cents.</td></tr>
+<tr><td>SUBS</td><td>Sub 1: copia del motor −1/−2/−3 octavas. Sub 2: seno −1/−2 octavas con detune estéreo. Da tono a los motores sin afinación.</td></tr>
+<tr><td>MOTOR</td><td>Controles propios del motor (ver abajo).</td></tr>
+<tr><td>FILTER</td><td>12 tipos (LPF, HPF, BPF, Notch, Peak, Low/High Shelf, All-Pass, Ladder, Comb, Formant, Phaser), pendiente 12–48&nbsp;dB, LPG: <i>Amp</i> o <i>Amp + Filt</i>. En Peak y Shelf, Res fija la ganancia.</td></tr>
+<tr><td>ENV GEN</td><td>Modos ADSR (delay, curvas, One-Shot), Vactrol (rise/fall rápido y lento, memoria, forma, drift), LFO y VENV (usa una de las 4 formas dibujables con su propio tiempo; Sub Mode: Sustain, One-Shot, Sustain-Loop).</td></tr>
+<tr><td>EQ</td><td>5 bandas con curva interactiva (arrastra nodos; rueda: Q en la banda media, pendiente en HPF/LPF). Snapshots <b>A–D</b> con <b>Morph</b>; <b>RST</b> vuelve a un único snapshot plano; <b>EDIT</b> abre el editor grande.</td></tr>
+<tr><td>SCOPE</td><td>2D (vectorscopio), Wave, Phase (retrato de fase del motor) y Grain (solo Wave Grains).</td></tr>
+<tr><td>OUTPUT</td><td>Level, Pan, Width (M/S), <b>Vsprd</b> (posición estéreo fija por nota, bipolar), Mono (graves en mono), Drive con 5 sabores y envíos Fx1–Fx3 a los buses A–C.</td></tr>
+</table>
+
+<h2 id="motores">Los doce motores</h2>
+<table>
+<tr><th>Motor</th><th>Sistema</th><th>Notas</th></tr>
+<tr><td>Kuramoto</td><td>Osciladores de fase acoplados</td><td>K bajo: parciales dispersos; K alto: tono bloqueado. Sincronización con histéresis.</td></tr>
+<tr><td>Duffing</td><td>Doble pozo forzado</td><td>Gamma empuja los saltos entre pozos; Omega 1 = resonancia.</td></tr>
+<tr><td>Sprott</td><td>Flujo jerk</td><td>Chaos lleva de periódico a turbulento; afinado al teclado.</td></tr>
+<tr><td>Lorenz+Rossler</td><td>Dos atractores mezclados</td><td>Sin afinación: usa Sub 2.</td></tr>
+<tr><td>Logistic/Henon</td><td>Mapas discretos</td><td>Ruido granular; Smooth suaviza. Sin afinación.</td></tr>
+<tr><td>Chua</td><td>Doble espiral</td><td>Alpha bajo: periódico; alto: caótico. Omega 3,5 da la nota.</td></tr>
+<tr><td>Gray-Scott</td><td>Reacción-difusión</td><td>Mantén Drift &gt; 0. BPF le da altura.</td></tr>
+<tr><td>Lorenz Additive</td><td>32 parciales movidos por Lorenz</td><td>Se beneficia de Engine HQ.</td></tr>
+<tr><td>Wave Grains</td><td>Wavetable 2-D + granular + caos</td><td>X/Y mueven entre seno, triángulo, sierra y cuadrada; Frozen/Continuous; formante.</td></tr>
+<tr><td>Bowed String</td><td>Guía de onda frotada</td><td>Press o Speed a 0 detienen la cuerda. Stiff lleva hacia piano y campana.</td></tr>
+<tr><td>Mackey-Glass</td><td>Bucle de retardo no lineal</td><td>Se autoafina; Sharp alto entra en caos; Crackle crepita; Octave Fixed/Free.</td></tr>
+<tr><td>Circle Map</td><td>Lenguas de Arnold</td><td>Ratio 0,5 = la nota; Lock engancha intervalos; engranaje esclavo acoplado.</td></tr>
+</table>
+
+<h2 id="mod">Moduladores</h2>
+<p><b>Global</b> = una instancia compartida; <b>Poly</b> = una por nota. <b>ON</b> apaga el slot; <b>ASSIGN</b> conecta con el siguiente control que toques.</p>
+<h3>LFO ×8</h3>
+<p>Formas Sine, Triangle, Saw Up/Down, Pulse, Random S&amp;H, Random Smooth y Perlin; rate libre o sincronizado al host; Level, Phase, Slew, Skew, fades de ataque y release, Retrig. Los LFO 1, 3, 5 y 7 pueden <b>enlazar</b> grupos Dual/Quad/Oct en modo Sync, Phase, Divide, Pendulum o Mirror. <b>LOOP LOCK</b> hace repetibles las formas aleatorias en cada vuelta (LEN en segundos o compases).</p>
+<h3>VENV ×4</h3>
+<p>Envolventes dibujables. Modo LINES: arrastra puntos, doble clic añade, clic derecho borra o cambia la curva, <kbd>Alt</kbd> ajusta a rejilla, rueda hace zoom, <kbd>Shift</kbd>+arrastrar desplaza. Modo FREE: dibuja a mano. 100 formas de fábrica (bancos A–J) y formas de usuario en <code>Documentos/Caosmo Presets/VENV</code>. Niveles de zona A/D/S/R sin redibujar; modos 1-Shot, Sustain y Sustain-Loop (banda amarilla).</p>
+<h3>Atractores ×4</h3>
+<p>Lorenz, Rössler, Chua, Duffing y Sprott B como modulación lisa y que nunca se repite. P1/P2 son los coeficientes del atractor elegido; Out X/Y/Z/Blend; retrato 3-D giratorio.</p>
+
+<h2 id="matrix">Matriz</h2>
+<p>24 rutas. Cada una: fuente, destino (menú por grupos), cantidad, polaridad, curva, lag, fade in/out, jitter y cuantización de altura (Semitone, Major, Minor, Penta). La luz indica: verde activa, azul bucle entre moduladores, ámbar motor ausente, roja combinación sin efecto (fuente por nota hacia un destino global). La fuente <b>CC</b> usa el número de su columna; clic derecho en un control → <i>MIDI / MPE → MIDI Learn</i>. <b>KEYTRACK</b> dibuja cómo cada nota se convierte en modulación. <b>MACROS</b> lista lo que mueve cada macro.</p>
+<p>Clic derecho en cualquier control: <i>Modulate with…</i>, <i>Send to Macro</i>, <i>Connected</i> (quitar rutas), reset y entrada numérica. El halo violeta alrededor del control muestra el rango y el valor modulado en vivo.</p>
+<p>La velocidad siempre escala el nivel de forma lineal; la fuente Velocity actúa encima.</p>
+
+<h2 id="master">Master y FX</h2>
+<p>Cadena: <b>EQ → Saturador → Compresor → Width → Limitador → Output</b>. BYPASS desactiva las etapas de color y mantiene limitador y salida. Saturador Trans/Tube con sobremuestreo ×2/×4. Compresor con knee, glue, filtro del detector y sidechain externo (activa la entrada Sidechain en el host). Limitador true-peak con look-ahead (añade 1,5&nbsp;ms de latencia al activarse) y release manual o automático. Medidor con pico, true-peak y correlación; visualizadores en cascada, nube de fase, terreno y galaxia (clic cambia vista, rueda zoom, clic derecho paleta).</p>
+<p><b>FX</b>: tres buses A/B/C con tres ranuras en serie: Reverb, Delay (estéreo o ping-pong), Freq Shift, Granular (Live/Freeze), Howl y Ring Mod. Los envíos están en OUTPUT de cada capa; los retornos se suman antes del master.</p>
+
+<h3>DELUGE FX</h3>
+<p>Tercera pestaña de MASTER. Es una inserción, situada justo antes de la cadena master, con los efectos del firmware abierto del <b>Synthstrom Audible Deluge</b> (GPL-3.0), compilados tal cual en su aritmética de punto fijo:</p>
+<ul>
+<li><b>Mod FX</b>: Flanger, Chorus, Phaser, Stereo Chorus, Warble, Dimension y Grain. Controles Rate, Depth, Feedback y Offset.</li>
+<li><b>EQ</b>: Bass y Treble con sus frecuencias.</li>
+<li><b>Destruction</b>: decimación (reducción de frecuencia de muestreo), bitcrush y saturación.</li>
+<li><b>Delay</b>: cantidad y velocidad, sync de 2 compases a 1/128 (par, tresillo, puntillo), ping-pong y modo analógico.</li>
+<li><b>Reverb</b>: modelos Freeverb, Mutable y Digital, con envío, room, damping, width, HPF, LPF y pan.</li>
+<li><b>Compressor</b>: el compresor maestro RMS del Deluge, con medidor de reducción.</li>
+<li><b>Stutter</b>: repetición sincronizada, cuantizada, invertida o ping-pong.</li>
+</ul>
+<p>Los valores usan la escala 0–50 del Deluge y las mismas conversiones internas del firmware. Con todos los controles en su posición neutra el nivel no cambia. Por usar este código, Caosmo se distribuye bajo GPL v3.</p>
+
+<h2 id="presets">Presets</h2>
+<p>256 presets de fábrica. Nueve categorías generales (Nebulae, Fault Lines, Filaments, Sparks, Undertow, Static Fields, Clockwork, Resonant Bodies, Alloys) y ocho mundos experimentales que evolucionan sin parar: <b>Mycelia</b> (tres motores como un organismo, Macro 1 mueve los tres), <b>Weather Systems</b> (atractores que se modulan entre sí), <b>Bifurcations</b> (una VENV lleva el control de caos del orden a la turbulencia; aftertouch empuja más), <b>Strata</b> (drones graves donde el keytrack hace inestables las notas agudas), <b>Particle Fields</b> (nubes de grano con Loop Lock), <b>Signal Decay</b> (bucles inestables y realimentación de frequency shifter), <b>Warehouse</b> (texturas de techno con LFOs enlazados y gates sincronizados) y <b>Living Machines</b> (dieciséis moduladores conectados entre sí). Todos tienen macros útiles. El navegador filtra por categoría, favoritos (corazón), etiquetas (Type · Character · Motion, en modo AND) y texto. Los presets de usuario se guardan como <code>.caosmo</code> en <code>Documentos/Caosmo Presets/User</code>; clic derecho para editar información, renombrar o borrar.</p>
+
+<h2 id="ajustes">Ajustes</h2>
+<p>Tamaño de interfaz 75–200&nbsp;%, rueda Fine/Coarse/Off, fondo Midnight/Graphite, visualizadores, Engine HQ, voces (1–64) y legato, glide Fingered/Always, afinación A = 415–466&nbsp;Hz, MPE (Off/Lower/Upper) con rangos de pitch bend global y por nota, y canal MIDI por capa (no disponible con MPE). Las preferencias de interfaz son tuyas, no del patch.</p>
+
+<h2 id="atajos">Atajos</h2>
+<table>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Deshacer / rehacer (parámetros, rutas, formas)</td></tr>
+<tr><td><kbd>Shift</kbd>+arrastrar</td><td>Ajuste fino</td></tr>
+<tr><td>Doble clic en un control</td><td>Escribir un valor</td></tr>
+<tr><td>Clic derecho en un control</td><td>Menú de modulación</td></tr>
+<tr><td>Clic en el título de un contenedor</td><td>Copy / Paste / Vary / Randomise</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Cerrar diálogo o cancelar ASSIGN</td></tr>
+<tr><td>DETACH</td><td>Abrir la página actual en una ventana flotante</td></tr>
+</table>
+</main></body></html>

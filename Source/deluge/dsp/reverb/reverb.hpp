@@ -1,0 +1,129 @@
+#pragma once
+#include "base.hpp"
+#include "deluge/dsp/reverb/reverb.hpp"
+#include "digital.hpp"
+#include "freeverb/freeverb.hpp"
+#include "mutable.hpp"
+#include <algorithm>
+#include <cstdint>
+#include <variant>
+
+namespace deluge::dsp {
+
+class [[gnu::hot]] Reverb : reverb::Base {
+public:
+	enum class Model {
+		FREEVERB = 0, // Freeverb is the original
+		MUTABLE,
+		DIGITAL,
+	};
+
+	Reverb() : base_(&std::get<reverb::Freeverb>(reverb_)) {
+		room_size_ = base_->getRoomSize();
+		damping_ = base_->getDamping();
+		width_ = base_->getWidth();
+		hpf_ = base_->getHPF();
+		lpf_ = base_->getLPF();
+	}
+	~Reverb() override = default;
+
+	void setModel(Model m) {
+		// emplace destroys whatever was there, so base_ has to be re-pointed at the new object
+		// rather than left aimed at the corpse of the old one.
+		switch (m) {
+		case Model::FREEVERB:
+			base_ = &reverb_.emplace<reverb::Freeverb>();
+			break;
+		case Model::DIGITAL:
+			base_ = &reverb_.emplace<reverb::Digital>();
+			break;
+		case Model::MUTABLE:
+			base_ = &reverb_.emplace<reverb::Mutable>();
+			break;
+		}
+		base_->setRoomSize(room_size_);
+		base_->setDamping(damping_);
+		base_->setWidth(width_);
+		base_->setHPF(hpf_);
+		base_->setLPF(lpf_);
+		model_ = m;
+	}
+
+	Model getModel() { return model_; }
+
+	void process(std::span<int32_t> input, std::span<StereoSample> output) override {
+		using namespace reverb;
+		switch (model_) {
+		case Model::FREEVERB:
+			reverb_as<Freeverb>().process(input, output);
+			break;
+		case Model::MUTABLE:
+			reverb_as<Mutable>().process(input, output);
+			break;
+		case Model::DIGITAL:
+			reverb_as<Digital>().process(input, output);
+			break;
+		}
+	}
+
+	void setPanLevels(const int32_t amplitude_left, const int32_t amplitude_right) {
+		base_->setPanLevels(amplitude_left, amplitude_right);
+	}
+
+	void setRoomSize(float value) override {
+		room_size_ = value;
+		base_->setRoomSize(value);
+	}
+
+	[[nodiscard]] float getRoomSize() const override { return base_->getRoomSize(); };
+
+	void setDamping(float value) override {
+		damping_ = value;
+		base_->setDamping(value);
+	}
+
+	[[nodiscard]] float getDamping() const override { return base_->getDamping(); }
+
+	void setWidth(float value) override {
+		width_ = value;
+		base_->setWidth(value);
+	}
+
+	[[nodiscard]] float getWidth() const override { return base_->getWidth(); };
+
+	void setHPF(float f) override {
+		hpf_ = f;
+		base_->setHPF(f);
+	}
+	[[nodiscard]] float getHPF() const override { return base_->getHPF(); }
+
+	void setLPF(float f) override {
+		lpf_ = f;
+		base_->setLPF(f);
+	}
+	[[nodiscard]] float getLPF() const override { return base_->getLPF(); }
+
+	template <typename T>
+	constexpr T& reverb_as() {
+		return std::get<T>(reverb_);
+	}
+
+private:
+	std::variant<         //<
+	    reverb::Freeverb, //<
+	    reverb::Mutable,  //<
+	    reverb::Digital   //<
+	    >
+	    reverb_{};
+
+	Model model_ = Model::FREEVERB;
+
+	reverb::Base* base_ = nullptr;
+
+	float room_size_ = 0.f;
+	float damping_ = 0.f;
+	float width_ = 0.f;
+	float hpf_ = 0.f;
+	float lpf_ = 0.f;
+};
+} // namespace deluge::dsp

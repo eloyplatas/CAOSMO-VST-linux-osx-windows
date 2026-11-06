@@ -1,0 +1,737 @@
+# Caosmo factory bank. Lines: @ Name | Category | Tags | Description
+# L<n> key=value (lane params; e.<key> = engine param), LFO<n>/VENV<n>/ATTR<n>/FX<bus><slot>/FX<bus> kv, G id=value, MOD src > dst : amount [k=v]
+# Choice values by name (underscores for spaces) or index. Real units for continuous params.
+
+######## NEBULAE (pads) ########
+@ Glass Synchrony | Nebulae | Pad;Glassy;Evolving | A Kuramoto swarm that drifts in and out of lock under a slow LFO on coupling.
+L1 engine=Kuramoto e.k=6 e.spread=0.45 e.nosc=10 e.ratio=Golden eatt=1800 edec=2000 esus=0.85 erel=3500 cut=6000 res=0.15 fx1=-8 vspread=0.6 driftp=Subtle
+LFO1 rate=0.07 wave=Sine
+MOD LFO 1 > L1 Motor 1 : 0.18
+FXA1 type=Reverb p1=0.78 p2=0.45 p3=0.15 p4=0.6 p5=0.85
+
+@ Cumulus Engine | Nebulae | Pad;Warm;Slow | Lorenz additive partials breathing through a gentle low-pass, Sub 2 under it.
+L1 engine=Lorenz_Additive e.chaos=0.8 e.dens=18 e.smooth=0.7 e.drive=0.5 eatt=1400 erel=3000 cut=4200 res=0.2 sub2lev=0.25 fx1=-10 width=1.3
+FXA1 type=Reverb p1=0.7 p2=0.55 p5=0.8
+
+@ Aurora Filament | Nebulae | Pad;Airy;Evolving | Wave grains morphing across the 2-D table, chaos steering X and Y.
+L1 engine=Wave_Grains e.x=0.2 e.y=0.4 e.size=380 e.count=9 e.crate=0.25 e.camx=0.6 e.camy=0.5 e.spray=0.8 e.scatter=0.5 e.shape=0.2 eatt=1200 erel=3200 cut=9000 fx1=-9
+FXA1 type=Reverb p1=0.85 p2=0.35 p4=0.7 p5=0.85
+
+@ Slow Bloom Vactrol | Nebulae | Pad;Warm;Slow | Two lanes through a lazy vactrol low-pass gate: each chord blooms open.
+L1 engine=Sprott e.chaos=0.6 e.damp=1.4 emode=Vactrol vrf=120 vff=600 vrs=900 vfs=3500 vmix=0.7 lpg=1 cut=7000 fx1=-10 vspread=-0.7
+L2 engine=Kuramoto e.k=9 e.spread=0.3 pitch=12 level=-9 emode=Vactrol vrs=1500 vfs=4000 lpg=1 cut=5000 vspread=0.7 fx1=-10
+FXA1 type=Reverb p1=0.72 p5=0.8
+
+@ Coherent Choir | Nebulae | Pad;Glassy;Static | Locked swarm through a formant filter; vowels shift with the mod wheel.
+L1 engine=Kuramoto e.k=12 e.spread=0.6 e.nosc=12 e.out=Coherent e.ratio=Harmonic ftype=Formant cut=600 res=0.35 eatt=900 erel=2200 fx1=-9 driftp=Subtle
+MOD Mod Wheel > L1 Cutoff : 0.35
+LFO2 rate=0.11 wave=Triangle
+MOD LFO 2 > L1 Cutoff : 0.08
+FXA1 type=Reverb p1=0.75 p5=0.8
+
+@ Polar Drift | Nebulae | Pad;Dark;Evolving | Lorenz and Rossler side by side, given pitch by Sub 2 and moved by a poly attractor.
+L1 engine=Lorenz+Rossler e.lor=0.5 e.ros=0.6 e.sigma=8 e.c=5 sub2lev=0.7 sub2oct=-1 cut=2400 res=0.25 ftype=Ladder eatt=1500 erel=4000 fx1=-7
+ATTR1 type=Lorenz rate=0.08 mode=Poly smooth=0.5
+MOD Attractor 1 > L1 Cutoff : 0.2
+FXA1 type=Reverb p1=0.8 p2=0.6 p5=0.85
+
+@ Tidal Glass | Nebulae | Pad;Glassy;Pulsing | Circle-map gears locked to the note, a VENV tide sweeping the shape.
+L1 engine=Circle_Map e.lock=0.45 e.shape=0.2 e.slew=0.55 e.couple=0.5 eatt=1100 erel=2600 cut=8000 fx1=-9 vspread=0.8
+VENV2 time=4 mode=Sustain-Loop voicing=Poly
+MOD VENV 2 > L1 Motor 6 : 0.4
+FXA1 type=Reverb p1=0.7 p5=0.8
+FXB1 type=Delay p1=0.78 p2=0.45 p3=0.5 p5=0.5
+L1 fx2=-16
+
+@ Velvet Nebula | Nebulae | Pad;Warm;Slow | Duffing well at low drive, soft and resonant, stereo-spread per note.
+L1 engine=Duffing e.gamma=0.18 e.delta=0.35 e.out=Blend eatt=900 erel=2500 cut=3500 res=0.1 vspread=1 driftp=Subtle driftf=Subtle fx1=-9
+L2 engine=Duffing e.gamma=0.2 e.delta=0.4 pitch=7 level=-12 eatt=1600 erel=3000 cut=3000 vspread=-1
+FXA1 type=Reverb p1=0.8 p5=0.8
+
+@ Distant Freeze | Nebulae | Pad;Airy;Static | Pads frozen into a granular cloud on bus B.
+L1 engine=Kuramoto e.k=7 e.spread=0.5 eatt=700 erel=2000 cut=7000 fx1=-12 fx2=-6
+FXB1 type=Granular p1=0.7 p2=0.65 p3=0.6 p4=0.75 p5=0.8
+FXB2 type=Reverb p1=0.85 p5=0.9
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Ice Shelf | Nebulae | Pad;Bright;Static | Bright additive bank with drive, high shelf lifted, slow attack.
+L1 engine=Lorenz_Additive e.chaos=0.6 e.dens=32 e.smooth=0.85 e.drive=1.2 eatt=2000 erel=3000 hsg=4 hsf=7000 hpf=150 fx1=-9 width=1.5
+FXA1 type=Reverb p1=0.9 p2=0.2 p5=0.8
+
+@ Murmuration | Nebulae | Pad;Organic;Chaotic | Swarm near its critical coupling, partially synchronised, torn and alive.
+L1 engine=Kuramoto e.k=4.2 e.spread=0.7 e.nosc=12 e.ratio=Random eatt=1300 erel=2800 cut=5000 fx1=-8 vspread=0.9
+LFO3 rate=0.05 wave=Perlin
+MOD LFO 3 > L1 Motor 1 : 0.06
+FXA1 type=Reverb p1=0.75 p5=0.85
+
+@ Halo Shift | Nebulae | Pad;Metallic;Evolving | A frequency shifter on the send turns a gentle pad into a spiralling halo.
+L1 engine=Wave_Grains e.x=0 e.y=0 e.size=250 e.count=8 eatt=900 erel=2500 cut=8000 fx1=-6
+FXA1 type=Freq_Shift p1=0.6 p2=0.5 p3=0.8
+FXA2 type=Reverb p1=0.8 p5=0.9
+
+@ Moss Choir | Nebulae | Pad;Organic;Slow | Bowed strings on free notes, low bow speed, warmed by the body.
+L1 engine=Bowed_String e.press=0.45 e.speed=0.35 e.pos=0.4 e.bright=0.3 e.body=0.6 e.note=Free eatt=800 erel=2500 cut=4000 fx1=-9 vspread=0.7
+L2 engine=Bowed_String e.press=0.5 e.speed=0.3 e.pos=0.25 pitch=12 level=-10 eatt=1200 erel=2500 vspread=-0.7
+FXA1 type=Reverb p1=0.75 p5=0.85
+
+@ Ozone Layer | Nebulae | Pad;Airy;Evolving | Three-lane stack: swarm, grains and sine sub, each with its own envelope.
+L1 engine=Kuramoto e.k=8 e.spread=0.4 eatt=1500 erel=3000 cut=6000 level=-3 fx1=-10
+L2 engine=Wave_Grains e.y=0.6 e.size=500 e.count=6 e.crate=0.15 eatt=2500 erel=3500 level=-8 pitch=12 fx1=-8
+L3 engine=Sprott e.chaos=0.3 e.damp=2 pitch=-12 level=-10 eatt=600 erel=2000 cut=900
+FXA1 type=Reverb p1=0.8 p5=0.85
+
+@ Mercury Rain | Nebulae | Pad;Glassy;Pulsing | Pad with a dotted ping-pong delay and a rising high shelf on mod wheel.
+L1 engine=Circle_Map e.lock=0.3 e.slew=0.6 e.shape=0.1 eatt=600 erel=2000 cut=7000 fx1=-12 fx2=-8
+FXB1 type=Delay p1=0.79 p2=0.5 p3=0.45 p4=0.2 p5=0.7 opt=1
+FXA1 type=Reverb p1=0.7 p5=0.8
+MOD Mod Wheel > L1 Cutoff : 0.3
+
+@ Dark Matter Pad | Nebulae | Pad;Dark;Slow | A low Chua double-scroll smoothed by the ladder filter, sub octave underneath.
+L1 engine=Chua e.alpha=8.8 e.beta=16 ftype=Ladder cut=900 res=0.3 eatt=1500 erel=3500 sub1lev=0.4 fx1=-10
+FXA1 type=Reverb p1=0.85 p2=0.7 p5=0.8
+
+######## FAULT LINES (bass) ########
+@ Double Well Bass | Fault Lines | Bass;Gritty;Static | Duffing pushed hard: tonal on soft notes, jumping between wells on loud ones.
+L1 engine=Duffing e.gamma=0.35 e.delta=0.12 e.stiff=1.6 e.out=Position eatt=2 edec=500 esus=0.6 erel=150 cut=1600 res=0.25 sub2lev=0.5 mono=120
+MOD Velocity > L1 Motor 1 : 0.35
+G voices=4
+
+@ Ladder Chaos Bass | Fault Lines | Bass;Warm;Pulsing | Sprott flow into a resonant ladder with an envelope-driven LPG.
+L1 engine=Sprott e.chaos=0.5 e.damp=1.2 ftype=Ladder cut=2500 res=0.45 lpg=1 eatt=1 edec=380 esus=0.3 erel=200 sub2lev=0.4 mono=150
+G voices=1 legato=1 glide=40
+
+@ Scroll Sub | Fault Lines | Bass;Dark;Static | Chua in its periodic window: a round, slightly unstable sub.
+L1 engine=Chua e.alpha=8.6 e.beta=16.5 cut=800 res=0.1 eatt=3 erel=180 sub2lev=0.6 mono=200
+G voices=1
+
+@ Ember Bass | Fault Lines | Bass;Warm;Organic | Mackey-Glass delay loop tuned to the note; Sharp and Crackle on macros.
+L1 engine=Mackey-Glass e.drive=0.45 e.speed=0.3 e.loss=0.6 e.sharp=0.1 e.bright=0.4 eatt=2 edec=800 esus=0.7 erel=200 cut=3000 mono=150
+MOD Macro 1 > L1 Motor 5 : 0.4
+G voices=1 legato=1 glide=25
+
+@ Gear Bass | Fault Lines | Bass;Metallic;Rhythmic | Circle map at Ratio 0.5 with a strong Lock: square, solid, gear-like.
+L1 engine=Circle_Map e.lock=0.75 e.shape=0.8 e.slew=0.3 e.tongue=0.05 eatt=1 edec=300 esus=0.5 erel=120 cut=2000 res=0.3 ftype=Ladder mono=150 drive=0.25
+G voices=1
+
+@ Tar Pit | Fault Lines | Bass;Dark;Chaotic | Two Duffing lanes an octave apart, the upper one gnarly, the lower one clean.
+L1 engine=Duffing e.gamma=0.15 e.delta=0.3 pitch=-12 eatt=2 erel=200 cut=600
+L2 engine=Duffing e.gamma=0.6 e.delta=0.08 e.drive=Saw level=-8 eatt=4 edec=400 esus=0.4 erel=150 cut=1800 res=0.35 drive=0.3 dflav=Tape
+G voices=4
+
+@ Rubber Bow Bass | Fault Lines | Bass;Organic;Static | Bowed string low and stiff, fast bow, short release.
+L1 engine=Bowed_String e.press=0.6 e.speed=0.6 e.pos=0.2 e.loss=0.3 e.stiff=0.3 e.body=0.3 eatt=8 erel=150 cut=2500 mono=120
+G voices=4
+
+@ Lorenz Growl | Fault Lines | Bass;Gritty;Evolving | Pitch-inert Lorenz noise riding a Sub 1/Sub 2 bass, growl from the filter LFO.
+L1 engine=Lorenz+Rossler e.lor=0.9 e.ros=0.2 e.lorout=X sub2lev=0.9 sub2oct=-1 ftype=BPF cut=500 res=0.4 eatt=2 erel=180 level=3
+LFO1 rate=3 wave=Triangle mode=Poly retrig=1
+MOD LFO 1 > L1 Cutoff : 0.18
+G voices=1
+
+@ Reese Swarm | Fault Lines | Bass;Dark;Pulsing | Detuned swarm at low coupling: beating partials like a classic Reese.
+L1 engine=Kuramoto e.k=1.5 e.spread=0.08 e.nosc=8 e.ratio=Linear cut=900 res=0.2 eatt=3 erel=200 sub2lev=0.5 mono=180
+L2 engine=Kuramoto e.k=1.2 e.spread=0.1 fine=-12 level=-3 cut=900
+G voices=1 legato=1 glide=60
+
+@ Formant Bass | Fault Lines | Bass;Gritty;Pulsing | Duffing through the formant filter, vowel moved by an envelope-like VENV.
+L1 engine=Duffing e.gamma=0.4 e.out=Velocity ftype=Formant cut=400 res=0.2 level=10 eatt=2 erel=150 sub2lev=0.4 mono=150
+VENV1 time=0.4 mode=1-Shot voicing=Poly shape=1
+MOD VENV 1 > L1 Cutoff : 0.35
+G voices=1
+
+@ Sub Gear Pulse | Fault Lines | Bass;Dark;Rhythmic | Gear bass gated by a host-synced 1/16 LFO.
+L1 engine=Circle_Map e.lock=0.6 e.shape=0.5 cut=1200 res=0.2 eatt=1 erel=100 mono=150
+LFO1 sync=Host div=1/16 wave=Pulse
+MOD LFO 1 > L1 Level : -0.25 pol=Unipolar
+G voices=1
+
+@ Fold Thump | Fault Lines | Bass;Harsh;Percussive | Sprott through the wavefolder drive, a pitch drop from VENV.
+L1 engine=Sprott e.chaos=0.3 e.damp=1.8 eatt=1 edec=400 esus=0 erel=100 cut=3000 drive=0.4 dflav=Wavefolder mono=150
+VENV1 time=0.15 mode=1-Shot voicing=Poly shape=3
+MOD VENV 1 > L1 Pitch : 0.12
+G voices=4
+
+@ Basalt | Fault Lines | Bass;Warm;Static | Clean, warm bass from the additive bank with few partials.
+L1 engine=Lorenz_Additive e.chaos=0.5 e.dens=6 e.smooth=0.9 e.drive=0.9 eatt=2 erel=180 cut=1500 mono=200
+G voices=4
+
+@ Seismic Wobble | Fault Lines | Bass;Gritty;Rhythmic | Mackey-Glass with Sharp swept by a synced LFO: from tone to snarl.
+L1 engine=Mackey-Glass e.drive=0.5 e.sharp=0.15 e.speed=0.25 e.loss=0.5 eatt=2 erel=150 cut=4000 mono=150
+LFO1 sync=Host div=1/8 wave=Triangle
+MOD LFO 1 > L1 Motor 5 : 0.25 pol=Unipolar
+G voices=1
+
+@ Iron Tongue | Fault Lines | Bass;Metallic;Chaotic | Circle map with Tongue high: the gear slips into chaos under velocity.
+L1 engine=Circle_Map e.lock=0.85 e.tongue=0.4 e.shape=0.6 eatt=1 edec=400 esus=0.5 erel=120 cut=2500 mono=150
+MOD Velocity > L1 Motor 5 : 0.4
+G voices=4
+
+######## FILAMENTS (leads) ########
+@ Thread Lead | Filaments | Lead;Bright;Static | Sprott flow lead with glide and vibrato on the mod wheel.
+L1 engine=Sprott e.chaos=0.7 e.damp=0.8 eatt=5 erel=250 cut=7000 res=0.2 fx2=-14
+LFO1 rate=5.5 wave=Sine mode=Poly afade=400
+MOD LFO 1 > L1 Pitch : 0.004
+FXB1 type=Delay p1=0.75 p2=0.35 p5=0.6
+G voices=1 legato=1 glide=70
+
+@ Bifurcation Lead | Filaments | Lead;Harsh;Chaotic | Chua lead: aftertouch pushes Alpha across the bifurcation.
+L1 engine=Chua e.alpha=8.6 e.beta=15 eatt=4 erel=200 cut=5000 res=0.25 drive=0.2 fx2=-14
+MOD Aftertouch > L1 Motor 1 : 0.5
+MOD Mod Wheel > L1 Motor 1 : 0.5
+FXB1 type=Delay p1=0.72 p2=0.4 p5=0.6
+G voices=1 legato=1 glide=50
+
+@ Glass Whistle | Filaments | Lead;Glassy;Static | Locked swarm lead with a sine sub, clean and focused.
+L1 engine=Kuramoto e.k=14 e.spread=0.2 e.nosc=4 eatt=10 erel=300 cut=9000 sub2lev=0.2 fx1=-14
+FXA1 type=Reverb p1=0.6 p5=0.7
+G voices=1 glide=40
+
+@ Snarl Lead | Filaments | Lead;Gritty;Chaotic | Mackey-Glass Classic curve: wild and textured, Sharp on the mod wheel.
+L1 engine=Mackey-Glass e.curve=Classic e.drive=0.3 e.speed=0.25 e.loss=0.5 e.sharp=0.1 eatt=3 erel=200 cut=6000 fx2=-14
+MOD Mod Wheel > L1 Motor 5 : 0.5
+FXB1 type=Delay p1=0.74 p2=0.3 p5=0.5
+G voices=1 legato=1 glide=30
+
+@ Gear Shift Lead | Filaments | Lead;Metallic;Rhythmic | The mod wheel sweeps Ratio: the gears snap between intervals.
+L1 engine=Circle_Map e.lock=0.6 e.shape=0.4 e.slew=0.3 eatt=3 erel=200 cut=8000 fx2=-14
+MOD Mod Wheel > L1 Motor 2 : 0.35
+FXB1 type=Delay p1=0.76 p2=0.4 p5=0.6
+G voices=1
+
+@ Vocal Swarm | Filaments | Lead;Organic;Evolving | Coherent swarm through formants; a slow LFO walks the vowel.
+L1 engine=Kuramoto e.k=10 e.spread=0.4 e.out=Coherent ftype=Formant cut=900 res=0.5 eatt=20 erel=300 fx1=-12
+LFO1 rate=0.3 wave=Triangle mode=Poly
+MOD LFO 1 > L1 Cutoff : 0.12
+FXA1 type=Reverb p1=0.6 p5=0.7
+G voices=1 legato=1 glide=60
+
+@ Ribbon Bow | Filaments | Lead;Warm;Organic | Expressive bowed lead: aftertouch is bow pressure, velocity is speed.
+L1 engine=Bowed_String e.press=0.45 e.speed=0.45 e.pos=0.3 e.bright=0.55 e.body=0.5 eatt=40 erel=350 fx1=-12
+MOD Aftertouch > L1 Motor 1 : 0.35
+MOD Velocity > L1 Motor 2 : 0.3
+LFO1 rate=5 wave=Sine mode=Poly afade=600
+MOD LFO 1 > L1 Pitch : 0.003
+FXA1 type=Reverb p1=0.65 p5=0.75
+G voices=1 legato=1 glide=60
+
+@ Hysteresis Saw | Filaments | Lead;Bright;Evolving | Wave grains locked to a bright saw, chaos moving the fold.
+L1 engine=Wave_Grains e.x=0 e.y=1 e.size=40 e.count=4 e.camf=0.5 e.fold=0.15 e.crate=2 e.spray=0.2 eatt=3 erel=250 cut=9000 fx2=-14
+FXB1 type=Delay p1=0.75 p2=0.35 p5=0.5
+G voices=1 glide=40
+
+@ Shard Lead | Filaments | Lead;Harsh;Static | Clip drive on a square-ish gear, comb filter for edge.
+L1 engine=Circle_Map e.lock=0.5 e.shape=1 ftype=Comb cut=1800 res=0.45 eatt=2 erel=150 drive=0.35 dflav=Clip fx2=-16
+FXB1 type=Delay p1=0.72 p2=0.3 p5=0.5
+G voices=1
+
+@ Duffing Flute | Filaments | Lead;Airy;Static | Gentle Duffing with a breathy noise drive and a band-pass.
+L1 engine=Duffing e.gamma=0.22 e.delta=0.25 e.drive=Noise ftype=BPF cut=1800 res=0.05 level=10 eatt=60 erel=250 sub2lev=0.4 sub2oct=-1 fx1=-10
+FXA1 type=Reverb p1=0.7 p5=0.7
+G voices=1 legato=1 glide=50
+
+@ Neon Spiral | Filaments | Lead;Bright;Pulsing | Additive lead with a ping-pong echo and a pulse on cutoff.
+L1 engine=Lorenz_Additive e.chaos=1.6 e.dens=24 e.smooth=0.15 e.drive=1.4 eatt=4 erel=250 cut=6000 res=0.3 fx2=-10
+LFO1 sync=Host div=1/8 wave=Saw_Down mode=Poly retrig=1
+MOD LFO 1 > L1 Cutoff : 0.15 pol=Unipolar
+FXB1 type=Delay p1=0.76 p2=0.45 p5=0.6 opt=1
+G voices=1
+
+@ Orbit Lead | Filaments | Lead;Organic;Chaotic | A Rossler attractor nudging pitch by a few cents: alive but in tune.
+L1 engine=Sprott e.chaos=1.2 eatt=6 erel=250 cut=6500 fx1=-12
+ATTR1 type=Rossler rate=1.5 mode=Poly
+MOD Attractor 1 > L1 Pitch : 0.0015
+MOD Attractor 1 > L1 Cutoff : 0.08
+FXA1 type=Reverb p1=0.6 p5=0.7
+G voices=1 glide=40
+
+@ Ring Lead | Filaments | Lead;Metallic;Static | Ring-modulated send gives the swarm lead a bell-like shadow.
+L1 engine=Kuramoto e.k=11 e.spread=0.3 eatt=4 erel=250 cut=8000 fx1=-8
+FXA1 type=Ring_Mod p1=0.55 p2=0.8
+FXA2 type=Reverb p1=0.6 p5=0.8
+G voices=1
+
+@ Solar Wind | Filaments | Lead;Airy;Evolving | Grain lead with a long fade-in on chaos modulation.
+L1 engine=Wave_Grains e.x=0.6 e.y=0.2 e.size=120 e.count=7 e.camx=0.8 e.crate=0.8 eatt=30 erel=400 cut=8000 fx1=-10
+MOD Attractor 2 > L1 Motor 2 : 0.3 fin=1500
+ATTR2 type=Lorenz rate=0.6 mode=Poly
+FXA1 type=Reverb p1=0.7 p5=0.75
+G voices=1 legato=1 glide=50
+
+######## SPARKS (plucks, keys, percussive) ########
+@ Glass Pluck | Sparks | Pluck;Glassy;Static | Short locked swarm with a one-shot envelope and a filter pluck.
+L1 engine=Kuramoto e.k=12 e.spread=0.5 esub=One-Shot esus=0 edec=600 eatt=1 cut=2500 lpg=1 res=0.2 fx1=-12 vspread=0.8
+FXA1 type=Reverb p1=0.55 p5=0.7
+
+@ Gear Mallet | Sparks | Keys;Metallic;Static | Circle map marimba: soft shape, short decay, gentle body.
+L1 engine=Circle_Map e.lock=0.35 e.shape=0.1 e.slew=0.5 esub=One-Shot esus=0 edec=700 eatt=1 cut=6000 fx1=-12
+FXA1 type=Reverb p1=0.5 p5=0.65
+
+@ Vactrol Ping | Sparks | Pluck;Warm;Static | A classic vactrol low-pass-gate ping on a Duffing well.
+L1 engine=Duffing e.gamma=0.25 e.delta=0.2 emode=Vactrol vrf=2 vff=150 vrs=10 vfs=900 vmix=0.4 lpg=1 cut=8000 fx1=-12 vspread=0.6
+G voices=8
+FXA1 type=Reverb p1=0.55 p5=0.7
+
+@ Struck String | Sparks | Pluck;Organic;Static | Bowed string used as a pluck: VENV kills the bow speed after a moment.
+L1 engine=Bowed_String e.press=0.6 e.speed=0.7 e.pos=0.15 e.loss=0.2 e.bright=0.7 e.body=0.5 eatt=1 erel=900 fx1=-12
+VENV1 time=0.25 mode=1-Shot voicing=Poly shape=8
+MOD VENV 1 > L1 Motor 2 : -0.6
+FXA1 type=Reverb p1=0.55 p5=0.7
+
+@ Crackle Key | Sparks | Keys;Gritty;Organic | Mackey-Glass with a little crackle, short decay, warm tape drive.
+L1 engine=Mackey-Glass e.drive=0.4 e.crackle=0.25 e.loss=0.7 esub=One-Shot esus=0 edec=900 eatt=1 cut=5000 drive=0.2 dflav=Tape fx1=-12
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Chaos Clave | Sparks | Percussive;Bright;Static | Tiny Chua hit through a band-pass: wooden and clicky.
+L1 engine=Chua e.alpha=9.5 e.omega=3.5 pitch=24 esub=One-Shot esus=0 edec=220 eatt=0.5 ftype=BPF cut=1800 res=0.15 level=6 fx1=-14
+MOD Keytrack > L1 Cutoff : 0.3
+FXA1 type=Reverb p1=0.4 p5=0.6
+
+@ Sand Snare | Sparks | Percussive;Noisy;Static | Logistic/Henon noise with a pitched Sub 2 body: an electronic snare.
+L1 engine=Logistic/Henon e.morph=0.3 esub=One-Shot esus=0 edec=180 eatt=0.5 sub2lev=0.6 sub2oct=-1 hpf=200 cut=9000 fx1=-14
+FXA1 type=Reverb p1=0.45 p5=0.6
+
+@ Well Kick | Sparks | Percussive;Dark;Static | Duffing kick with a VENV pitch drop and fast decay.
+L1 engine=Duffing e.gamma=0.3 e.delta=0.5 pitch=-24 esub=One-Shot esus=0 edec=350 eatt=0.5 cut=900 mono=200
+VENV1 time=0.08 mode=1-Shot voicing=Poly shape=5
+MOD VENV 1 > L1 Pitch : 0.25
+
+@ Glass Bell | Sparks | Keys;Glassy;Static | Inharmonic swarm with a long decay and stiff bowed partial on lane 2.
+L1 engine=Kuramoto e.k=0.5 e.spread=0.9 e.ratio=Golden esub=One-Shot esus=0 edec=2500 eatt=1 cut=12000 fx1=-10 vspread=0.5
+L2 engine=Bowed_String e.stiff=0.8 e.speed=0.5 esub=One-Shot esus=0 edec=1200 level=-14 pitch=12
+FXA1 type=Reverb p1=0.7 p5=0.75
+
+@ Kalimba Gears | Sparks | Pluck;Warm;Static | Circle map with slave gear coupling, plucked through the vactrol.
+L1 engine=Circle_Map e.lock=0.4 e.couple=0.7 e.slave=1.5 emode=Vactrol vrf=1 vff=200 vrs=5 vfs=1200 lpg=1 cut=6000 fx1=-12
+FXA1 type=Reverb p1=0.5 p5=0.7
+
+@ Grain Harp | Sparks | Pluck;Airy;Static | Short grains with long scatter make a harp-like smear.
+L1 engine=Wave_Grains e.size=30 e.count=12 e.scatter=0.8 e.spray=0.9 esub=One-Shot esus=0 edec=1500 eatt=1 cut=9000 fx1=-10
+FXA1 type=Reverb p1=0.65 p5=0.75
+
+@ Rubber Tom | Sparks | Percussive;Organic;Static | Sprott flow with a fast pitch envelope: a soft tom.
+L1 engine=Sprott e.chaos=0.2 e.damp=2.5 pitch=-12 esub=One-Shot esus=0 edec=500 eatt=0.5 cut=3000
+VENV1 time=0.12 mode=1-Shot voicing=Poly shape=5
+MOD VENV 1 > L1 Pitch : 0.15
+FXA1 type=Reverb p1=0.4 p5=0.6
+L1 fx1=-16
+
+@ Metal Tine | Sparks | Keys;Metallic;Static | Ring mod on the send and a hard gear shape: electric-piano tine.
+L1 engine=Circle_Map e.lock=0.3 e.shape=0.3 e.slave=2 e.couple=0.5 esub=One-Shot esus=0.2 edec=1200 erel=500 eatt=1 cut=7000 fx1=-14
+FXA1 type=Ring_Mod p1=0.85 p2=0.5
+FXA2 type=Reverb p1=0.5 p5=0.8
+
+@ Pebble Hat | Sparks | Percussive;Bright;Static | High-passed map noise with a very short envelope.
+L1 engine=Logistic/Henon e.morph=0.8 esub=One-Shot esus=0 edec=60 eatt=0.3 hpf=4000 hpfs=2
+MOD Velocity > L1 Env Dec : 0.2
+
+@ Comb Pluck | Sparks | Pluck;Gritty;Static | Duffing noise drive excites a comb filter tuned near the note.
+L1 engine=Duffing e.drive=Noise e.gamma=0.5 ftype=Comb cut=220 res=0.85 esub=One-Shot esus=0 edec=800 eatt=0.5 fx1=-12
+MOD Keytrack > L1 Cutoff : 0.25
+FXA1 type=Reverb p1=0.5 p5=0.7
+
+######## UNDERTOW (drones) ########
+@ Abyssal Hum | Undertow | Drone;Dark;Slow | Lorenz/Rossler drone with a deep sub, slowly filtered by an attractor.
+L1 engine=Lorenz+Rossler e.lor=0.6 e.ros=0.8 e.sigma=12 sub2lev=0.8 sub2oct=-2 cut=700 res=0.3 ftype=Ladder eatt=3000 erel=6000 fx1=-6
+ATTR1 type=Rossler rate=0.04 smooth=0.6
+MOD Attractor 1 > L1 Cutoff : 0.25
+FXA1 type=Reverb p1=0.9 p2=0.7 p5=0.85
+
+@ Tanpura Swarm | Undertow | Drone;Warm;Evolving | Harmonic swarm, slow locking and unlocking: a tanpura-like shimmer.
+L1 engine=Kuramoto e.k=5 e.spread=0.25 e.ratio=Harmonic e.nosc=12 eatt=2500 erel=5000 cut=5000 fx1=-8 width=1.4
+LFO1 rate=0.03 wave=Random_Smooth
+MOD LFO 1 > L1 Motor 1 : 0.15
+FXA1 type=Reverb p1=0.85 p5=0.8
+
+@ Mitotic Bed | Undertow | Drone;Organic;Chaotic | Gray-Scott reaction pitched by its band-pass, cells dividing underneath.
+L1 engine=Gray-Scott e.drift=0.5 e.bpf=0.7 e.q=8 eatt=2000 erel=5000 sub2lev=0.4 cut=5000 fx1=-7
+FXA1 type=Reverb p1=0.85 p5=0.85
+
+@ Eternal Bow | Undertow | Drone;Warm;Static | Free-running bowed strings at fifths, endless sustain.
+L1 engine=Bowed_String e.press=0.5 e.speed=0.4 e.note=Free e.body=0.7 eatt=2000 erel=4000 fx1=-8
+L2 engine=Bowed_String e.press=0.55 e.speed=0.35 pitch=7 level=-6 eatt=3000 erel=4000
+L3 engine=Bowed_String e.press=0.5 e.speed=0.3 pitch=-12 level=-6 eatt=2500 erel=4000
+FXA1 type=Reverb p1=0.85 p5=0.8
+
+@ Magnetosphere | Undertow | Drone;Airy;Evolving | Howling feedback voice on the send, fed by a quiet swarm.
+L1 engine=Kuramoto e.k=3 e.spread=0.6 eatt=3000 erel=5000 cut=3000 fx1=-4 level=-6
+FXA1 type=Howl p1=0.45 p2=0.75 p3=0.5 p4=0.3 p5=0.5
+FXA2 type=Reverb p1=0.9 p5=0.9
+LFO1 rate=0.04 wave=Perlin
+MOD LFO 1 > FX A1 P1 : 0.1
+
+@ Hollow Earth | Undertow | Drone;Dark;Slow | Chua drone with a slowly rotating comb filter.
+L1 engine=Chua e.alpha=9.2 e.beta=16 ftype=Comb cut=110 res=0.7 eatt=2500 erel=5000 fx1=-8
+LFO1 rate=0.05 wave=Sine
+MOD LFO 1 > L1 Cutoff : 0.06
+FXA1 type=Reverb p1=0.85 p5=0.8
+
+@ Saturn Rings | Undertow | Drone;Metallic;Evolving | Gear drone with slave coupling slowly swept, frequency-shifted echoes.
+L1 engine=Circle_Map e.lock=0.55 e.couple=0.6 e.slave=1.33 eatt=2500 erel=5000 cut=6000 fx1=-8 fx2=-12
+LFO1 rate=0.02 wave=Triangle
+MOD LFO 1 > L1 Motor 3 : 0.2
+FXA1 type=Reverb p1=0.85 p5=0.8
+FXB1 type=Freq_Shift p1=0.57 p2=0.6 p3=0.7
+
+@ Low Pressure | Undertow | Drone;Dark;Static | Duffing drone with noise drive under a heavy low-pass.
+L1 engine=Duffing e.drive=Noise e.gamma=0.3 e.delta=0.05 cut=500 res=0.3 eatt=2500 erel=5000 sub2lev=0.5 fx1=-8
+FXA1 type=Reverb p1=0.9 p2=0.8 p5=0.8
+
+@ Glacier | Undertow | Drone;Glassy;Slow | Frozen grains layered over a bright additive drone.
+L1 engine=Lorenz_Additive e.chaos=0.5 e.smooth=1 e.dens=28 eatt=3000 erel=6000 cut=9000 fx1=-10 fx2=-6
+FXB1 type=Granular p1=0.8 p2=0.5 p3=0.8 p4=1 p5=0.6
+FXB2 type=Reverb p1=0.9 p5=0.9
+FXA1 type=Reverb p1=0.85 p5=0.8
+
+@ Ember Drone | Undertow | Drone;Warm;Chaotic | Mackey-Glass at the edge of oscillation, crackling like old vinyl.
+L1 engine=Mackey-Glass e.crackle=0.45 e.drive=0.35 e.loss=0.9 e.sharp=0.12 e.note=Free eatt=2000 erel=4000 cut=4000 fx1=-8
+FXA1 type=Reverb p1=0.8 p5=0.8
+
+@ Monolith | Undertow | Drone;Dark;Static | Three engines stacked an octave apart on one key, power for a single held note.
+L1 engine=Sprott e.chaos=0.4 e.damp=2 pitch=-12 eatt=2000 erel=4000 cut=1500
+L2 engine=Chua e.alpha=8.6 level=-8 eatt=3000 erel=4000 cut=2500
+L3 engine=Kuramoto e.k=9 pitch=12 level=-12 eatt=4000 erel=4000 cut=5000 fx1=-6
+FXA1 type=Reverb p1=0.85 p5=0.8
+
+@ Solar Furnace | Undertow | Drone;Harsh;Evolving | A Lorenz drone driven into the master saturator, filter breathing.
+L1 engine=Lorenz+Rossler e.lor=1 e.ros=0.3 sub2lev=0.6 cut=2000 res=0.4 eatt=2000 erel=4000 fx1=-10
+LFO1 rate=0.06 wave=Sine
+MOD LFO 1 > L1 Cutoff : 0.15
+G m_satdrive=0.4 m_satflav=Tube
+FXA1 type=Reverb p1=0.8 p5=0.75
+
+@ Choir of Wells | Undertow | Drone;Organic;Slow | Duffing wells on all three lanes, voices spread wide.
+L1 engine=Duffing e.gamma=0.2 e.delta=0.3 eatt=2000 erel=4000 vspread=-1 cut=3000
+L2 engine=Duffing e.gamma=0.25 e.delta=0.25 pitch=12 level=-6 eatt=2500 erel=4000 vspread=1 cut=3000
+L3 engine=Duffing e.gamma=0.15 pitch=-12 level=-6 eatt=1500 erel=4000 cut=1500
+FXA1 type=Reverb p1=0.85 p5=0.8
+L1 fx1=-8
+
+@ Deep Field | Undertow | Drone;Airy;Static | Wave grains at maximum size, slow chaos, wide spray.
+L1 engine=Wave_Grains e.size=1000 e.count=12 e.crate=0.05 e.spray=1 e.camx=0.4 e.camy=0.4 eatt=3000 erel=6000 cut=7000 fx1=-7
+FXA1 type=Reverb p1=0.9 p5=0.85
+
+######## STATIC FIELDS (textures) ########
+@ Cell Division | Static Fields | Texture;Noisy;Chaotic | Raw Gray-Scott crackle, unpitched, drifting.
+L1 engine=Gray-Scott e.drift=0.7 eatt=200 erel=1500 cut=9000 fx1=-10
+FXA1 type=Reverb p1=0.7 p5=0.7
+
+@ Hiss Map | Static Fields | Texture;Noisy;Static | Logistic noise smoothed into a hiss, band-passed by keytrack.
+L1 engine=Logistic/Henon e.morph=0.1 e.bright=0.4 ftype=BPF cut=1500 res=0.3 eatt=300 erel=1500 fx1=-10
+MOD Keytrack > L1 Cutoff : 0.4
+FXA1 type=Reverb p1=0.7 p5=0.7
+
+@ Radio Static | Static Fields | Texture;Gritty;Chaotic | Henon map with drift through a ring modulator.
+L1 engine=Logistic/Henon e.morph=1 e.drift=0.8 e.bright=0.3 eatt=100 erel=1000 fx1=-6 level=-6
+FXA1 type=Ring_Mod p1=0.6 p2=0.8
+FXA2 type=Reverb p1=0.6 p5=0.7
+
+@ Rain on Tin | Static Fields | Texture;Metallic;Rhythmic | Gray-Scott crackle into a granular cloud and comb filter.
+L1 engine=Gray-Scott e.drift=0.9 ftype=Comb cut=800 res=0.6 eatt=100 erel=1500 fx2=-6
+FXB1 type=Granular p1=0.3 p2=0.8 p3=0.9 p5=0.8
+FXB2 type=Reverb p1=0.6 p5=0.8
+
+@ Insect Swarm | Static Fields | Texture;Organic;Chaotic | Random-ratio swarm at low coupling with fast attractor pitch flutter.
+L1 engine=Kuramoto e.k=0.3 e.spread=1 e.ratio=Random e.nosc=12 pitch=24 eatt=300 erel=1200 cut=8000 fx1=-10
+ATTR1 type=Chua rate=6 mode=Poly
+MOD Attractor 1 > L1 Pitch : 0.01
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Dust Storm | Static Fields | Texture;Noisy;Evolving | Map noise and Lorenz rumble with a slowly opening filter VENV.
+L1 engine=Logistic/Henon e.morph=0.6 e.drift=0.5 cut=500 res=0.2 eatt=500 erel=2500 fx1=-8
+L2 engine=Lorenz+Rossler e.lor=0.8 e.ros=0 level=-6 cut=400 eatt=1000 erel=2500
+VENV2 time=6 mode=Sustain voicing=Poly
+MOD VENV 2 > L1 Cutoff : 0.45
+FXA1 type=Reverb p1=0.8 p5=0.75
+
+@ Broken Machine | Static Fields | Texture;Harsh;Rhythmic | Circle map deep in chaos with a stuttering VENV gate.
+L1 engine=Circle_Map e.lock=1 e.tongue=0.7 e.shape=0.9 eatt=5 erel=300 drive=0.3 dflav=Fold fx1=-10
+VENV1 time=1 mode=Sustain-Loop voicing=Poly shape=28
+MOD VENV 1 > L1 Level : 0.0
+L1 emode=VENV evsrc=VENV_1 esub=Sustain-Loop evtime=0.8
+FXA1 type=Reverb p1=0.5 p5=0.6
+
+@ Geiger | Static Fields | Texture;Noisy;Rhythmic | Sparse Mackey-Glass crackle, mostly silence, mostly clicks.
+L1 engine=Mackey-Glass e.crackle=1 e.drive=0.1 e.loss=1 eatt=10 erel=500 hpf=500 fx1=-10
+FXA1 type=Reverb p1=0.5 p5=0.7
+
+@ Whale Song | Static Fields | Texture;Airy;Slow | Frequency-shifted feedback swarm, slow glide between notes.
+L1 engine=Kuramoto e.k=6 e.spread=0.5 eatt=800 erel=3000 cut=2500 fx1=-4
+FXA1 type=Freq_Shift p1=0.53 p2=0.7 p3=0.7
+FXA2 type=Reverb p1=0.9 p5=0.9
+G voices=1 glide=900 legato=1
+
+@ Static Choir | Static Fields | Texture;Organic;Evolving | Henon noise through a formant filter, vowels driven by Perlin.
+L1 engine=Logistic/Henon e.morph=0.5 e.bright=0.2 ftype=Formant cut=500 res=0.6 eatt=600 erel=2000 fx1=-8
+LFO1 rate=0.2 wave=Perlin mode=Poly
+MOD LFO 1 > L1 Cutoff : 0.25
+FXA1 type=Reverb p1=0.75 p5=0.8
+
+@ Wind Chimes Far | Static Fields | Texture;Glassy;Chaotic | Inharmonic swarm grains scattered through a long reverb.
+L1 engine=Wave_Grains e.x=0 e.y=0 e.size=15 e.count=16 e.scatter=1 e.jitter=1 e.spray=1 pitch=24 eatt=500 erel=3000 fx1=-4 level=-6
+FXA1 type=Reverb p1=0.95 p2=0.2 p5=0.9
+
+@ Tectonic Creak | Static Fields | Texture;Organic;Slow | Bowed string at very low speed and high pressure: creaking wood.
+L1 engine=Bowed_String e.press=0.95 e.speed=0.08 e.rasp=0.9 e.loss=0.8 e.bright=0.2 pitch=-12 eatt=200 erel=1500 fx1=-8
+FXA1 type=Reverb p1=0.7 p5=0.8
+
+@ Plasma Fizz | Static Fields | Texture;Bright;Chaotic | Spectral chaos at max with Smooth at 0: partials flicker.
+L1 engine=Lorenz_Additive e.chaos=2 e.smooth=0 e.dens=32 e.drive=1.8 eatt=200 erel=1500 hpf=300 fx1=-10
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Electric Moss | Static Fields | Texture;Gritty;Evolving | Reaction-diffusion with a pitched band-pass and tape delay wobble.
+L1 engine=Gray-Scott e.drift=0.5 e.bpf=0.5 e.q=12 eatt=300 erel=2000 fx2=-8
+FXB1 type=Delay p1=0.7 p2=0.6 p3=0.6 p4=0.8 p5=0.7
+FXA1 type=Reverb p1=0.6 p5=0.7
+L1 fx1=-12
+
+######## CLOCKWORK (rhythmic, host-synced) ########
+@ Gear Train 16 | Clockwork | Sequence;Metallic;Rhythmic | A host-synced 1/16 LFO steps the gear Ratio through locked intervals.
+L1 engine=Circle_Map e.lock=0.6 e.shape=0.4 eatt=2 erel=150 cut=7000 fx2=-12
+LFO1 sync=Host div=1/16 wave=Random_S&H
+MOD LFO 1 > L1 Motor 2 : 0.25 quant=Off
+FXB1 type=Delay p1=0.79 p2=0.35 p5=0.5 opt=1
+G lfo_loop=1 lfo_loopsync=Host lfo_loopdiv=1_bar
+
+@ Pulse Swarm | Clockwork | Sequence;Glassy;Pulsing | Swarm chopped by a host-synced VENV gate pattern.
+L1 engine=Kuramoto e.k=10 e.spread=0.4 emode=VENV evsrc=VENV_3 esub=Sustain-Loop evtime=1 cut=7000 fx2=-10
+VENV3 sync=Host div=1_bar mode=Sustain-Loop shape=25
+FXB1 type=Delay p1=0.76 p2=0.4 p5=0.6
+L1 fx1=-14
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Arp Steps | Clockwork | Sequence;Bright;Rhythmic | Pitch stepped by a VENV staircase quantised to a minor scale.
+L1 engine=Sprott e.chaos=0.5 eatt=2 erel=200 cut=6000 fx2=-12
+VENV1 sync=Host div=1_bar mode=Sustain-Loop voicing=Poly shape=39 pa=0 pd=0 ps=1
+MOD VENV 1 > L1 Pitch : 0.17 quant=Minor
+FXB1 type=Delay p1=0.77 p2=0.35 p5=0.5
+G voices=1
+
+@ Locked Random | Clockwork | Sequence;Organic;Rhythmic | Random S&H on cutoff and Motor 1, repeated each bar by Loop Lock.
+L1 engine=Duffing e.gamma=0.35 eatt=2 erel=250 cut=2000 res=0.35 ftype=Ladder fx2=-12
+LFO1 sync=Host div=1/8 wave=Random_S&H
+LFO2 sync=Host div=1/16 wave=Random_S&H
+MOD LFO 1 > L1 Cutoff : 0.2
+MOD LFO 2 > L1 Motor 1 : 0.2
+G lfo_loop=1 lfo_loopsync=Host lfo_loopdiv=1_bar
+FXB1 type=Delay p1=0.77 p2=0.4 p5=0.5
+
+@ Trance Gate Grains | Clockwork | Sequence;Airy;Pulsing | Grain pad gated in 1/16ths with a swing VENV.
+L1 engine=Wave_Grains e.size=300 e.count=8 eatt=500 erel=1500 cut=8000 fx1=-10
+VENV1 sync=Host div=1/2 mode=Sustain-Loop voicing=Global shape=27 pa=0 pd=0 ps=1
+MOD VENV 1 > L1 Level : 0.0
+L1 emode=VENV evsrc=VENV_1 esub=Sustain-Loop evtime=0.5
+FXA1 type=Reverb p1=0.7 p5=0.75
+
+@ Dotted Echo Pluck | Clockwork | Sequence;Warm;Rhythmic | Vactrol pluck into a dotted-eighth ping-pong delay.
+L1 engine=Circle_Map e.lock=0.4 e.shape=0.2 emode=Vactrol vrf=1 vff=120 vrs=8 vfs=800 lpg=1 cut=7000 fx2=-6
+FXB1 type=Delay p1=0.84 p2=0.5 p3=0.4 p5=0.7 opt=1
+FXA1 type=Reverb p1=0.6 p5=0.6
+L1 fx1=-14
+
+@ Clockwork Bass | Clockwork | Sequence;Dark;Rhythmic | Mono Duffing bass, cutoff pumped by a host-synced saw.
+L1 engine=Duffing e.gamma=0.4 e.delta=0.15 eatt=2 erel=150 cut=900 res=0.4 ftype=Ladder mono=150 sub2lev=0.4
+LFO1 sync=Host div=1/8 wave=Saw_Down
+MOD LFO 1 > L1 Cutoff : 0.25 pol=Unipolar
+G voices=1
+
+@ Pendulum Quad | Clockwork | Sequence;Metallic;Pulsing | Four linked LFOs in Pendulum mode spreading cutoff motion across three lanes.
+L1 engine=Kuramoto e.k=11 cut=3000 res=0.3 eatt=5 erel=300 vspread=-1
+L2 engine=Circle_Map e.lock=0.5 pitch=12 level=-6 cut=3000 res=0.3 vspread=1
+LFO1 sync=Host div=1/4 wave=Triangle link=Quad linkrel=Pendulum
+MOD LFO 1 > L1 Cutoff : 0.2
+MOD LFO 2 > L2 Cutoff : 0.2
+MOD LFO 3 > L1 Pan : 0.3
+MOD LFO 4 > L2 Pan : 0.3
+FXA1 type=Reverb p1=0.6 p5=0.7
+L1 fx1=-12
+
+@ Morse Code | Clockwork | Sequence;Bright;Rhythmic | Stutter gate shape on a whistle-like locked swarm.
+L1 engine=Kuramoto e.k=15 e.spread=0.1 e.nosc=3 emode=VENV evsrc=VENV_2 esub=Sustain-Loop evtime=1 cut=8000 fx2=-10
+VENV2 sync=Host div=1_bar mode=Sustain-Loop shape=28 pa=0 pd=0 ps=1
+FXB1 type=Delay p1=0.76 p2=0.3 p5=0.5
+
+@ Ratchet | Clockwork | Sequence;Harsh;Rhythmic | Clipped Chua hits repeated by a fast gate.
+L1 engine=Chua e.alpha=10 emode=VENV evsrc=VENV_4 esub=Sustain-Loop evtime=0.5 cut=5000 drive=0.4 dflav=Clip fx1=-12
+VENV4 sync=Host div=1/2 mode=Sustain-Loop shape=29 pa=0 pd=0 ps=1
+FXA1 type=Reverb p1=0.5 p5=0.6
+
+@ Euclid Wells | Clockwork | Sequence;Organic;Rhythmic | Duffing plucks triggered by a 5-gate VENV on a synced loop.
+L1 engine=Duffing e.gamma=0.3 e.delta=0.4 emode=VENV evsrc=VENV_1 esub=Sustain-Loop evtime=1 lpg=1 cut=6000 fx1=-12
+VENV1 sync=Host div=1_bar mode=Sustain-Loop shape=23 pa=0 pd=0 ps=1
+FXA1 type=Reverb p1=0.55 p5=0.65
+
+@ Phase Drummer | Clockwork | Sequence;Noisy;Rhythmic | Noise and sub on separate synced gates drifting in Phase link.
+L1 engine=Logistic/Henon e.morph=0.4 emode=VENV evsrc=VENV_1 esub=Sustain-Loop evtime=0.5 hpf=1500
+L2 engine=Sprott e.damp=2 pitch=-24 emode=VENV evsrc=VENV_2 esub=Sustain-Loop evtime=0.5 cut=600
+VENV1 sync=Host div=1/2 mode=Sustain-Loop shape=26 pa=0 pd=0 ps=1
+VENV2 sync=Host div=1_bar mode=Sustain-Loop shape=20 pa=0 pd=0 ps=1
+FXA1 type=Reverb p1=0.4 p5=0.5
+L1 fx1=-14
+
+@ Bouncing Ball | Clockwork | Sequence;Glassy;Rhythmic | Bounce shape on level and pitch: a ball settling on glass.
+L1 engine=Kuramoto e.k=12 pitch=12 emode=VENV evsrc=VENV_1 esub=One-Shot evtime=2 cut=9000 fx1=-10
+VENV1 shape=44 mode=1-Shot
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Swing Machine | Clockwork | Sequence;Warm;Rhythmic | Swing gate pattern on a warm Mackey-Glass tone.
+L1 engine=Mackey-Glass e.drive=0.4 e.loss=0.7 emode=VENV evsrc=VENV_1 esub=Sustain-Loop evtime=1 cut=4000 fx2=-12
+VENV1 sync=Host div=1_bar mode=Sustain-Loop shape=27 pa=0 pd=0 ps=1
+FXB1 type=Delay p1=0.77 p2=0.35 p5=0.5
+
+######## RESONANT BODIES (physical) ########
+@ Cello Gesture | Resonant Bodies | Lead;Warm;Organic | Bowed cello: pressure on aftertouch, vibrato fading in.
+L1 engine=Bowed_String e.press=0.5 e.speed=0.5 e.pos=0.25 e.body=0.7 e.bright=0.4 pitch=-12 eatt=80 erel=400 fx1=-12
+LFO1 rate=5.2 wave=Sine mode=Poly afade=900
+MOD LFO 1 > L1 Pitch : 0.003
+MOD Aftertouch > L1 Motor 1 : 0.3
+FXA1 type=Reverb p1=0.65 p5=0.75
+
+@ Piano Wire | Resonant Bodies | Keys;Metallic;Static | Stiff bowed string struck short: partials stretched toward piano wire.
+L1 engine=Bowed_String e.stiff=0.6 e.speed=0.8 e.press=0.7 e.pos=0.1 e.loss=0.15 e.bright=0.8 eatt=1 erel=1500 fx1=-12
+VENV1 time=0.15 mode=1-Shot voicing=Poly shape=8
+MOD VENV 1 > L1 Motor 2 : -0.7
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Raucous Fiddle | Resonant Bodies | Lead;Harsh;Chaotic | High loss and low brightness above A3: the pitch stumbles by design.
+L1 engine=Bowed_String e.press=0.8 e.speed=0.7 e.loss=0.9 e.bright=0.1 e.rasp=0.6 eatt=20 erel=300 fx1=-12
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Bell Foundry | Resonant Bodies | Keys;Metallic;Static | Max stiffness bowed bell with a ring-mod shadow.
+L1 engine=Bowed_String e.stiff=1 e.speed=0.6 e.press=0.6 e.body=0.2 esub=One-Shot esus=0 edec=3000 eatt=1 fx1=-10
+FXA1 type=Ring_Mod p1=0.75 p2=0.3
+FXA2 type=Reverb p1=0.8 p5=0.9
+
+@ Viola Section | Resonant Bodies | Pad;Warm;Organic | Three bowed lanes with detune and drift: a small section.
+L1 engine=Bowed_String e.press=0.5 e.speed=0.45 e.body=0.6 fine=-6 driftp=Subtle eatt=400 erel=900 vspread=-0.8
+L2 engine=Bowed_String e.press=0.55 e.speed=0.4 e.pos=0.35 fine=6 driftp=Subtle eatt=500 erel=900 vspread=0.8 level=-2
+L3 engine=Bowed_String e.press=0.5 e.speed=0.5 pitch=-12 level=-8 eatt=450 erel=900
+FXA1 type=Reverb p1=0.7 p5=0.8
+L1 fx1=-10
+
+@ Glass Harmonica | Resonant Bodies | Pad;Glassy;Static | Slow bow on a bright string, body off, high-passed.
+L1 engine=Bowed_String e.press=0.35 e.speed=0.25 e.pos=0.5 e.body=0 e.bright=0.9 eatt=300 erel=1200 hpf=300 fx1=-8
+FXA1 type=Reverb p1=0.8 p5=0.85
+
+@ Duffing Drum | Resonant Bodies | Percussive;Organic;Static | Double-well membrane with damping on velocity.
+L1 engine=Duffing e.gamma=0.4 e.delta=0.6 e.stiff=2.5 pitch=-12 esub=One-Shot esus=0 edec=600 eatt=0.5 cut=4000 fx1=-14
+MOD Velocity > L1 Motor 2 : -0.3
+FXA1 type=Reverb p1=0.5 p5=0.6
+
+@ Rosin Burn | Resonant Bodies | Lead;Gritty;Organic | Rasp at maximum with tape drive: aggressive bowing.
+L1 engine=Bowed_String e.press=0.7 e.speed=0.65 e.rasp=1 e.bright=0.7 eatt=30 erel=300 drive=0.3 dflav=Tape fx1=-12
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Kalimba Wire | Resonant Bodies | Pluck;Metallic;Static | Struck stiff string with comb resonance.
+L1 engine=Bowed_String e.stiff=0.4 e.speed=0.9 e.press=0.8 e.pos=0.05 esub=One-Shot esus=0 edec=900 eatt=0.5 ftype=Comb cut=1000 res=0.3 fx1=-12
+MOD Keytrack > L1 Cutoff : 0.3
+FXA1 type=Reverb p1=0.5 p5=0.65
+
+@ Ember Strings | Resonant Bodies | Pad;Warm;Evolving | Bowed pad with Mackey-Glass crackle underneath.
+L1 engine=Bowed_String e.press=0.5 e.speed=0.4 e.body=0.6 eatt=600 erel=1500 fx1=-10
+L2 engine=Mackey-Glass e.crackle=0.3 e.drive=0.3 level=-12 eatt=800 erel=1500 cut=3000
+FXA1 type=Reverb p1=0.75 p5=0.8
+
+@ Monochord | Resonant Bodies | Drone;Warm;Static | One free string, very long release, sub octave sine.
+L1 engine=Bowed_String e.press=0.5 e.speed=0.4 e.note=Free e.loss=0.25 eatt=1000 erel=6000 sub2lev=0.3 fx1=-8
+FXA1 type=Reverb p1=0.85 p5=0.8
+
+@ Hammered Gears | Resonant Bodies | Keys;Metallic;Rhythmic | Circle-map dulcimer with slave gear and short decay.
+L1 engine=Circle_Map e.lock=0.45 e.slave=2 e.couple=0.8 e.shape=0.3 esub=One-Shot esus=0 edec=900 eatt=0.5 cut=8000 fx1=-12
+FXA1 type=Reverb p1=0.55 p5=0.7
+
+@ Cathedral Bow | Resonant Bodies | Pad;Airy;Slow | Bowed strings drowned in a huge reverb and slow granular freeze.
+L1 engine=Bowed_String e.press=0.45 e.speed=0.35 e.body=0.5 eatt=1500 erel=3000 fx1=-6 fx2=-10
+FXA1 type=Reverb p1=1 p2=0.4 p5=0.9
+FXB1 type=Granular p1=0.75 p2=0.4 p3=0.7 p5=0.6
+
+######## ALLOYS (hybrids) ########
+@ Three Metals | Alloys | Pad;Metallic;Evolving | Swarm, gears and bowed string stacked, each with its own envelope.
+L1 engine=Kuramoto e.k=8 eatt=800 erel=2500 cut=6000 vspread=-0.8
+L2 engine=Circle_Map e.lock=0.4 e.couple=0.5 pitch=12 level=-8 eatt=1200 erel=2500 vspread=0.8
+L3 engine=Bowed_String e.speed=0.35 pitch=-12 level=-8 eatt=600 erel=2500
+FXA1 type=Reverb p1=0.75 p5=0.8
+L1 fx1=-10
+
+@ Swarm and Ember | Alloys | Keys;Warm;Organic | Locked swarm keys with a Mackey-Glass shadow one octave down.
+L1 engine=Kuramoto e.k=12 esub=One-Shot esus=0.3 edec=1200 erel=600 eatt=1 cut=7000 fx1=-12
+L2 engine=Mackey-Glass e.drive=0.4 e.loss=0.7 pitch=-12 level=-8 esub=One-Shot esus=0.2 edec=1500 eatt=2 cut=3000
+FXA1 type=Reverb p1=0.6 p5=0.7
+
+@ Chaos Organ | Alloys | Keys;Warm;Static | Three Sprott lanes at 16', 8' and 4' with organ envelopes.
+L1 engine=Sprott e.chaos=0.3 e.damp=1.5 eatt=5 erel=60 pitch=-12
+L2 engine=Sprott e.chaos=0.3 e.damp=1.5 eatt=5 erel=60 level=-4
+L3 engine=Sprott e.chaos=0.3 e.damp=1.5 eatt=5 erel=60 pitch=12 level=-8
+G voices=16
+FXA1 type=Reverb p1=0.6 p5=0.7
+L1 fx1=-14
+
+@ Grain Bow | Alloys | Pad;Airy;Evolving | Bowed string with a grain cloud an octave up, chaos shared through a macro.
+L1 engine=Bowed_String e.press=0.5 e.speed=0.4 eatt=500 erel=1500
+L2 engine=Wave_Grains e.size=200 e.count=8 pitch=12 level=-8 eatt=1000 erel=2000 cut=8000
+FXA1 type=Reverb p1=0.75 p5=0.8
+L1 fx1=-10
+L2 fx1=-8
+
+@ Split Personality | Alloys | Keys;Bright;Static | Lane 1 on MIDI channel 1, lane 2 on channel 2: two instruments in one.
+L1 engine=Circle_Map e.lock=0.4 esub=One-Shot esus=0 edec=800 eatt=1 chan=1
+L2 engine=Kuramoto e.k=9 eatt=600 erel=1500 chan=2
+FXA1 type=Reverb p1=0.6 p5=0.7
+L1 fx1=-12
+L2 fx1=-10
+
+@ Hybrid Reese Lead | Alloys | Lead;Gritty;Pulsing | Duffing and Chua detuned against each other, mono with glide.
+L1 engine=Duffing e.gamma=0.35 fine=-8 eatt=3 erel=200 cut=4000 res=0.3
+L2 engine=Chua e.alpha=8.7 fine=8 level=-3 eatt=3 erel=200 cut=4000
+G voices=1 legato=1 glide=60
+FXB1 type=Delay p1=0.75 p2=0.35 p5=0.5
+L1 fx2=-14
+
+@ Reaction Bells | Alloys | Keys;Glassy;Chaotic | Gray-Scott crackle gives bell strikes a living transient.
+L1 engine=Kuramoto e.k=1 e.spread=0.8 e.ratio=Golden esub=One-Shot esus=0 edec=2000 eatt=1 cut=10000
+L2 engine=Gray-Scott e.drift=0.6 e.bpf=0.6 e.q=10 esub=One-Shot esus=0 edec=300 eatt=0.5 level=-6
+FXA1 type=Reverb p1=0.7 p5=0.75
+L1 fx1=-10
+
+@ Tectonic Plates | Alloys | Bass;Dark;Chaotic | Duffing bass and Lorenz rumble, separated by bass-mono and width.
+L1 engine=Duffing e.gamma=0.4 eatt=2 erel=200 cut=1200 mono=200 width=0
+L2 engine=Lorenz+Rossler e.lor=0.8 level=-10 hpf=400 width=1.8 eatt=10 erel=300
+G voices=4
+
+@ Spectral Strings | Alloys | Pad;Warm;Slow | Additive bank under bowed strings with a shared slow attractor.
+L1 engine=Lorenz_Additive e.chaos=0.7 e.smooth=0.8 eatt=1500 erel=3000 cut=5000 level=-3
+L2 engine=Bowed_String e.press=0.5 e.speed=0.35 eatt=1000 erel=3000 level=-5
+ATTR1 type=Lorenz rate=0.1 smooth=0.5
+MOD Attractor 1 > L1 Motor 1 : 0.3
+MOD Attractor 1 > L2 Motor 2 : 0.1
+FXA1 type=Reverb p1=0.8 p5=0.8
+L1 fx1=-10
+
+@ Machine Choir | Alloys | Pad;Metallic;Evolving | Formant swarm against a gear drone, morphing EQ on the macro.
+L1 engine=Kuramoto e.k=10 e.out=Coherent ftype=Formant cut=700 res=0.5 eatt=800 erel=2000
+L2 engine=Circle_Map e.lock=0.6 pitch=-12 level=-9 eatt=1500 erel=2500 cut=2000
+LFO1 rate=0.15 wave=Perlin
+MOD LFO 1 > L1 Cutoff : 0.15
+FXA1 type=Reverb p1=0.75 p5=0.8
+L1 fx1=-10
+
+@ Velocity Split | Alloys | Keys;Bright;Static | Soft notes play the swarm, hard notes bring in the clipped gears.
+L1 engine=Kuramoto e.k=11 esub=One-Shot esus=0.4 edec=900 erel=500 eatt=1 cut=6000
+L2 engine=Circle_Map e.lock=0.7 e.shape=0.9 esub=One-Shot esus=0.2 edec=600 erel=400 eatt=1 level=-30 drive=0.3 dflav=Clip
+MOD Velocity > L2 Level : 0.45 curve=Exp
+FXA1 type=Reverb p1=0.55 p5=0.7
+L1 fx1=-12
+
+@ Hail and Thunder | Alloys | FX;Harsh;Chaotic | Map noise hail over a one-shot Duffing thunder roll.
+L1 engine=Logistic/Henon e.morph=0.9 esub=One-Shot esus=0 edec=1500 eatt=1 hpf=2000 level=-6
+L2 engine=Duffing e.drive=Noise e.gamma=0.8 pitch=-24 esub=One-Shot esus=0 edec=4000 eatt=50 cut=800 level=0
+FXA1 type=Reverb p1=0.85 p5=0.85
+L1 fx1=-6
+L2 fx1=-10
+
+@ Alloy Lead | Alloys | Lead;Metallic;Evolving | Three engines, one note: swarm, gears and string layered for a thick lead.
+L1 engine=Kuramoto e.k=12 eatt=4 erel=250 cut=7000 level=-2
+L2 engine=Circle_Map e.lock=0.5 e.shape=0.5 eatt=4 erel=250 pitch=12 level=-9 cut=6000
+L3 engine=Bowed_String e.press=0.6 e.speed=0.6 eatt=4 erel=250 pitch=-12 level=-8
+G voices=1 legato=1 glide=60
+FXB1 type=Delay p1=0.76 p2=0.35 p5=0.5
+L1 fx2=-14

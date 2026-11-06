@@ -1,0 +1,124 @@
+# Compila Caosmo para Linux, Windows y macOS, lo valida con pluginval y publica los binarios en la rama "builds".
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  JUCE_TAG: 8.0.4
+  VERSION: "0.4"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+          - name: macos-universal
+            os: macos-15-intel   # como en Dream Machine: el binario sale universal (arm64 + x86_64)
+          - name: linux-x64
+            os: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JUCE
+        shell: bash
+        run: git clone --depth 1 --branch "$JUCE_TAG" https://github.com/juce-framework/JUCE ../JUCE
+
+      - name: Dependencias (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-13 libasound2-dev libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev \
+            libxext-dev libfreetype6-dev libfontconfig1-dev libgl1-mesa-dev
+
+      - name: Configurar
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DCAOSMO_TESTS=OFF \
+              -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            # clang-cl: el código del Deluge usa atributos GNU que MSVC no acepta
+            cmake -B build -A x64 -T ClangCL -DCAOSMO_TESTS=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded"
+          else
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DCAOSMO_TESTS=OFF -DCMAKE_CXX_COMPILER=g++-13 -DCMAKE_C_COMPILER=gcc-13 \
+              -DCMAKE_MODULE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"
+          fi
+
+      - name: Compilar
+        shell: bash
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Firma ad hoc (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          A=build/Caosmo_artefacts/Release
+          codesign --force --deep --sign - "$A/VST3/Caosmo.vst3"
+          codesign --force --deep --sign - "$A/Standalone/Caosmo.app"
+
+      - name: pluginval (VST3)
+        shell: bash
+        run: |
+          A=build/Caosmo_artefacts/Release
+          case "$RUNNER_OS" in
+            Windows) curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip; unzip -q pv.zip; PV=./pluginval.exe ;;
+            macOS)   curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip; unzip -q pv.zip; PV=./pluginval.app/Contents/MacOS/pluginval ;;
+            Linux)   sudo apt-get install -y xvfb; curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip; unzip -q pv.zip; PV="xvfb-run -a ./pluginval" ;;
+          esac
+          $PV --strictness-level 7 --validate-in-process --skip-gui-tests --output-dir pv-log "$A/VST3/Caosmo.vst3" | tee pv.txt
+          grep -q "SUCCESS" pv.txt
+
+      - name: Empaquetar
+        shell: bash
+        run: |
+          A=build/Caosmo_artefacts/Release
+          O="Caosmo-${VERSION}-${{ matrix.name }}"
+          mkdir -p "$O"
+          cp -R "$A/VST3/Caosmo.vst3" "$O/"
+          cp LICENSE README.md "$O/"
+          cp docs/manual.html "$O/Caosmo Manual.html"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cp -R "$A/Standalone/Caosmo.app" "$O/"
+            ditto -c -k --keepParent "$O" "$O.zip"
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            cp "$A/Standalone/Caosmo.exe" "$O/"
+            7z a -tzip "$O.zip" "$O" > /dev/null
+          else
+            cp "$A/Standalone/Caosmo" "$O/Caosmo-standalone"
+            zip -qr "$O.zip" "$O"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Caosmo-${{ matrix.name }}
+          path: Caosmo-${{ env.VERSION }}-${{ matrix.name }}.zip
+
+  # Guarda los binarios en la rama "builds" para poder descargarlos con git
+  publish:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Subir a la rama builds
+        run: |
+          git init -q out && cd out
+          git checkout -q -b builds
+          cp ../dist/*.zip . 2>/dev/null || true
+          ls *.zip
+          git add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "Binarios de ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" builds
