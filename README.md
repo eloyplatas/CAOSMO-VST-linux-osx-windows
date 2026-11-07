@@ -1,94 +1,18 @@
-# Caosmo 0.4 — sintetizador polifónico de caos (VST3 Linux · Windows · macOS)
+# Caosmo 0.4 — Polyphonic Chaos Synth (VST3 Linux · Windows · macOS)
 
-Los binarios de las tres plataformas los compila GitHub Actions en cada push y quedan en la rama [`builds`](../../tree/builds).
+<img width="1428" height="885" alt="Captura de pantalla_2026-11-07_12-04-52" src="https://github.com/user-attachments/assets/7697db2b-5df2-47c7-a374-c2047aad66f1" />
 
-| Sistema | Carpeta VST3 |
-|---|---|
-| Linux | `~/.vst3/` |
-| Windows | `C:\Program Files\Common Files\VST3\` |
-| macOS | `/Library/Audio/Plug-Ins/VST3/` o `~/Library/Audio/Plug-Ins/VST3/` |
 
-En macOS el binario es universal (Apple Silicon e Intel) y lleva firma ad hoc. Si Gatekeeper lo bloquea: `xattr -dr com.apple.quarantine Caosmo.vst3`.
+Caosmo is a polyphonic synthesizer that plays no fixed waveforms and no samples. Each note starts a dynamical system, and what you hear is that system's trajectory, solved sample by sample. Oscillators that synchronise with each other, non-linear springs pushed to their limit, strange attractors, iterated maps, a chaotic electronic circuit, a chemical reaction on a ring of cells, a bowed string, a delay loop with memory and a map that meshes frequencies like the teeth of a gear. The result is an instrument that behaves more like a physical object than an oscillator. It has calm regions and turbulent regions, it responds differently depending on how you arrive at a setting, and it never sounds exactly the same twice.
 
-Reimplementación funcional, a partir de su documentación pública, del concepto de un sinte de caos de tres capas por nota. El nombre, la interfaz, los nombres de los motores, los presets y el manual son propios.
+Caosmo is a functional reimplementation of the concept described in the public documentation of Fragua by Pura Belia: a three-lane-per-note chaos synthesizer with twelve engines. All the code, names, interface, pre‐ sets and this manual are original; it contains no code or assets from Fragua. It is an independent work with no connection to Pura Belia.
 
-## Instalar (REAPER en Linux)
+<img width="1441" height="889" alt="Captura de pantalla_2026-11-07_12-06-15" src="https://github.com/user-attachments/assets/8b36aa4a-bb97-4d28-bcd5-0d6f56ada6d8" />
 
-```bash
-mkdir -p ~/.vst3 && cp -r Caosmo.vst3 ~/.vst3/
-```
-En REAPER: *Options → Preferences → Plug-ins → VST → Re-scan*. Los 256 presets van dentro del plugin. Los presets de usuario se guardan en `~/Documents/Caosmo Presets/User` y las formas VENV en `~/Documents/Caosmo Presets/VENV`. El manual se abre desde *Settings → About → Open Manual* y también está en `Caosmo Manual.html`.
+What it offers @@intro-que@@ Block Contents Voices Up to 64 voices. Each note plays through 3 independent lanes. Engines 12 chaotic systems, plus None to switch a lane off. Per lane 2 sub-oscillators, analogue drift, a 12-type filter, an envelope with 4 modes (ADSR, Vactrol, LFO, VENV), a 5-band EQ with 4 snapshots and morph, drive with 5 flavours, 3 sends. Modulation 8 linkable LFOs, 4 drawable envelopes (VENV), 4 attractors, a 24-route matrix, a drawable keytrack, 5 macros, MIDI learn and MPE. Master EQ with analyser, saturator, compressor with sidechain, width and a true-peak limiter. Effects 3 buses with 3 slots (6 effect types) and the DELUGE FX rack with the effects from the open-source Synthstrom Audible Deluge firmware. Presets 256 factory presets in 17 categories, with tags, favourites and search. Formats VST3 and a standalone application for Linux, Windows and macOS (universal).
 
-## Qué incluye
 
-**Sonido**
-- 3 capas por nota con los 12 motores de caos.
-- Cadena por capa completa: subs, drift, filtro de 12 tipos, envolvente ADSR / Vactrol / LFO / VENV con LPG, EQ de 5 bandas con snapshots A–D y morph, y salida con Voice Spread, bass mono, 5 tipos de drive y 3 envíos.
-- Engine HQ: sobremuestreo ×2 en el motor aditivo.
 
-**Modulación**
-- 8 LFOs con link Dual/Quad/Oct (Sync, Phase, Divide, Pendulum, Mirror) y Loop Lock.
-- 4 VENV dibujables, con 100 formas de fábrica y formas de usuario.
-- 4 atractores moduladores (Lorenz, Rössler, Chua, Duffing, Sprott B).
-- Matriz de 24 rutas con polaridad, curva, lag, fade in/out, jitter y cuantización de escala, más luces de estado.
-- Keytrack dibujable, 5 macros, MPE (zona Lower/Upper), MIDI learn y canal MIDI por capa.
-
-**Master y FX**
-- Cadena master: EQ con analizador → saturador Trans/Tube (×2/×4) → compresor con glue y sidechain externo → width → limitador true-peak con look-ahead → salida.
-- Medición: pico, true-peak y correlación.
-- 3 buses de FX con 3 ranuras en serie cada uno: Reverb, Delay (estéreo/ping-pong), Freq Shift, Granular (Live/Freeze), Howl y Ring Mod.
-
-**DELUGE FX** (pestaña MASTER → DELUGE)
-- Efectos del firmware del Synthstrom Audible Deluge, copiados de su repositorio GPL-3.0 y compilados en su propio punto fijo de 32 bits:
-  - Mod FX: Flanger, Chorus, Phaser, Stereo Chorus, Warble, Dimension y Grain.
-  - EQ graves/agudos, decimación, bitcrush y saturación.
-  - Delay digital/analógico con sync, tresillo/puntillo y ping-pong.
-  - Reverbs Freeverb, Mutable y Digital.
-  - Compresor maestro RMS y stutter.
-- Va como inserción antes de la cadena master. Los controles usan la escala 0–50 del Deluge y las mismas conversiones que el firmware. Con todo en neutro no cambia el nivel.
-- Procedencia, ficheros sin cambios y modificados: `Source/deluge/README.md`.
-
-**Interfaz**
-- Páginas MAIN / MODULATORS / MATRIX / MASTER (CHAIN y FX).
-- Halos de modulación en vivo sobre cada control.
-- Clic derecho en un control: *Modulate with*, *Send to Macro*, *Connected*, *MIDI Learn*.
-- Menú en el título de cada contenedor: Copy / Paste (con rutas) / Vary / Randomise / Copy to Lane.
-- Scopes por capa (2D, Wave, Phase, Grain) y visualizadores master (cascada, nube de fase, terreno, galaxia).
-- Ventanas flotantes (DETACH) y deshacer/rehacer.
-- Ajustes: tamaño 75–200 %, rueda Fine/Coarse/Off y dos fondos.
-
-**Presets**
-- 256 presets de fábrica en 17 categorías. Los 128 de la versión 0.3 son experimentales y evolutivos: Mycelia, Weather Systems, Bifurcations, Strata, Particle Fields, Signal Decay, Warehouse y Living Machines. Se generan con `presets/gen_experimental.py`.
-- Los 128 originales están en 9 categorías, nivelados automáticamente a unos −18 dBFS RMS y con limitador a −0,8 dBTP. Todos tienen 5 macros funcionales.
-- Navegador con categorías, favoritos, etiquetas Type · Character · Motion (filtro AND) y búsqueda.
-- Guardar con sugerencia automática de etiquetas; editar, renombrar y borrar presets de usuario.
-
-## Compilar
-
-```bash
-sudo apt install build-essential cmake libasound2-dev libx11-dev libxrandr-dev libxinerama-dev \
-  libxcursor-dev libxext-dev libfreetype-dev libgl1-mesa-dev
-git clone --depth 1 --branch 8.0.4 https://github.com/juce-framework/JUCE.git ../JUCE
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --target Caosmo_VST3 Caosmo_Standalone
-```
-
-El banco de presets se genera desde `presets/factory.txt` y `presets/factory2.txt` (este último creado por `presets/gen_experimental.py`):
-
-```bash
-build/CaosmoTest_artefacts/Release/CaosmoTest genpresets
-```
-
-Después hay que recompilar el plugin para embeber el banco.
-
-El banco de pruebas también acepta los modos `basic`, `sweep`, `features`, `features2`, `loadpresets`, `cpu`, `demos` y `ui`.
-
-## Diferencias conscientes con el original
-
-- No hay FM de audio entre capas.
-- Pan, Width, Drive, los envíos y el EQ Morph solo reciben modulación de fuentes globales. La luz roja de la matriz avisa si conectas una fuente por nota.
-- La reordenación de ranuras FX por arrastre no está implementada (en el original solo es visual).
-- Los visualizadores son 2-D en software, no OpenGL.
 
 ## Licencia
 
