@@ -1,6 +1,7 @@
 // Caosmo — the twelve chaos engines
 #pragma once
 #include "DSP.h"
+#include "EnginesX.h"
 
 namespace cz
 {
@@ -199,12 +200,15 @@ struct ELorRos
 // 5. Logistic / Hénon maps (pitch-inert)
 struct EMaps
 {
-    float lx = 0.31f, hx = 0.1f, hy = 0, lp = 0, dph = 0, sr = 48000.f;
+    float lx = 0.31f, hx = 0.1f, hy = 0, lp = 0, dph = 0, sr = 48000.f; float hist[4] {}; double cnt = 1.0;
     void prepare (float s) { sr = s; }
-    void reset (uint32_t seed) { lx = 0.2f + 0.6f * hashF (seed); hx = 0.1f; hy = 0; lp = 0; dph = hashF (seed + 9u); }
-    void render (const float* p, const int*, float, float* L, float* R, int n)
+    void reset (uint32_t seed) { lx = 0.2f + 0.6f * hashF (seed); hx = 0.1f; hy = 0; lp = 0; dph = hashF (seed + 9u); for (auto& h : hist) h = 0; cnt = 1.0; }
+    void render (const float* p, const int* c, float f0, float* L, float* R, int n)
     {
         const float morph = p[0], r = p[1], a = p[2], b = p[3], bright = p[4], drift = p[5];
+        const int clock = c[0];
+        // v0.5 note clocks: iterate at f0 * 2^Iter Oct (as SuperCollider's LogisticN/HenonN/L/C) instead of once per sample
+        const double inc = clock == 0 ? 1.0 : std::min (1.0, (double) f0 * std::exp2 ((double) p[6]) / sr);
         const float fc = 20000.f * std::pow (0.01f, bright);
         const float a1 = std::exp (-k2Pi * std::min (fc, sr * 0.45f) / sr);
         const float comp = std::min (6.f, std::sqrt (20000.f / fc));   // keep level when smoothing
@@ -212,13 +216,21 @@ struct EMaps
         for (int k = 0; k < n; ++k)
         {
             dph += dInc; if (dph >= 1.f) dph -= 1.f;
-            const float s = sinT (dph);
-            const float re = std::min (4.f, r + drift * 0.04f * s), ae = a + drift * 0.08f * s;
-            lx = re * lx * (1.f - lx);
-            if (! (lx > 0.f && lx < 1.f)) lx = 0.31f;
-            const float nh = 1.f - ae * hx * hx + hy; hy = b * hx; hx = nh;
-            if (! finiteF (hx) || std::fabs (hx) > 3.f) { hx = 0.1f; hy = 0; }
-            const float o = (1.f - morph) * (2.f * lx - 1.f) + morph * hx * 0.75f;
+            cnt += inc;
+            if (cnt >= 1.0)
+            {
+                cnt -= 1.0;
+                const float s = sinT (dph);
+                const float re = std::min (4.f, r + drift * 0.04f * s), ae = a + drift * 0.08f * s;
+                lx = re * lx * (1.f - lx);
+                if (! (lx > 0.f && lx < 1.f)) lx = 0.31f;
+                const float nh = 1.f - ae * hx * hx + hy; hy = b * hx; hx = nh;
+                if (! finiteF (hx) || std::fabs (hx) > 3.f) { hx = 0.1f; hy = 0; }
+                hist[0] = hist[1]; hist[1] = hist[2]; hist[2] = hist[3];
+                hist[3] = (1.f - morph) * (2.f * lx - 1.f) + morph * hx * 0.75f;
+            }
+            const float t = (float) cnt;
+            const float o = clock <= 1 ? hist[3] : (clock == 2 ? hist[2] + (hist[3] - hist[2]) * t : catmull (hist[0], hist[1], hist[2], hist[3], t));
             lp = o + a1 * (lp - o);
             L[k] = R[k] = lp * 0.7f * comp;
         }
@@ -685,18 +697,20 @@ struct ECircle
 struct EngineBank
 {
     EKuramoto kur; EDuffing duf; ESprott spr; ELorRos lr; EMaps maps; EChua chua; EGray gray; ESpectral spec; EWaveGrain wg; EBowed bow; EMackey mg; ECircle cm;
-    bool started[13] = {};
+    EGendy gen; EMapZoo mz; EEco eco; ENoise nz; EMembrane mb;
+    bool started[18] = {};
     void setHQ (bool on) { spec.hq = on; }
     void prepare (float sr)
     {
         kur.prepare (sr); duf.prepare (sr); spr.prepare (sr); lr.prepare (sr); maps.prepare (sr); chua.prepare (sr);
         gray.prepare (sr); spec.prepare (sr); wg.prepare (sr); bow.prepare (sr); mg.prepare (sr); cm.prepare (sr);
+        gen.prepare (sr); mz.prepare (sr); eco.prepare (sr); nz.prepare (sr); mb.prepare (sr);
         for (auto& b : started) b = false;
     }
     // freeMode: engines with a NOTE menu set to "Free" keep their state across notes
     void noteOn (int type, uint32_t seed, bool freeMode)
     {
-        if (type <= 0 || type > 12) return;
+        if (type <= 0 || type > 17) return;
         if (freeMode && started[type]) return;
         started[type] = true;
         switch (type)
@@ -705,6 +719,8 @@ struct EngineBank
             case 4: lr.reset (seed); break;   case 5: maps.reset (seed); break; case 6: chua.reset (seed); break;
             case 7: gray.reset (seed); break; case 8: spec.reset (seed); break; case 9: wg.reset (seed); break;
             case 10: bow.reset (seed); break; case 11: mg.reset (seed); break;  case 12: cm.reset (seed); break;
+            case 13: gen.reset (seed); break; case 14: mz.reset (seed); break;  case 15: eco.reset (seed); break;
+            case 16: nz.reset (seed); break;  case 17: mb.reset (seed); break;
             default: break;
         }
     }
@@ -718,6 +734,9 @@ struct EngineBank
             case 7: gray.render (p, c, f0, L, R, n); break;  case 8: spec.render (p, c, f0, L, R, n); break;
             case 9: wg.render (p, c, f0, L, R, n); break;    case 10: bow.render (p, c, f0, L, R, n); break;
             case 11: mg.render (p, c, f0, L, R, n); break;   case 12: cm.render (p, c, f0, L, R, n); break;
+            case 13: gen.render (p, c, f0, L, R, n); break;  case 14: mz.render (p, c, f0, L, R, n); break;
+            case 15: eco.render (p, c, f0, L, R, n); break;  case 16: nz.render (p, c, f0, L, R, n); break;
+            case 17: mb.render (p, c, f0, L, R, n); break;
             default: for (int k = 0; k < n; ++k) L[k] = R[k] = 0; break;
         }
     }

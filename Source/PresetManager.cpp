@@ -214,7 +214,8 @@ StringArray PresetManager::suggestTags() const
 {
     static const char* map[kNumEngines + 1][2] = { { "", "" }, { "Glassy", "Airy" }, { "Gritty", "Organic" }, { "Organic", "Warm" }, { "Dark", "Airy" },
                                                    { "Noisy", "Gritty" }, { "Gritty", "Harsh" }, { "Noisy", "Organic" }, { "Warm", "Glassy" },
-                                                   { "Airy", "Glassy" }, { "Organic", "Warm" }, { "Warm", "Gritty" }, { "Metallic", "Bright" } };
+                                                   { "Airy", "Glassy" }, { "Organic", "Warm" }, { "Warm", "Gritty" }, { "Metallic", "Bright" },
+                                                   { "Organic", "Gritty" }, { "Noisy", "Metallic" }, { "Organic", "Harsh" }, { "Noisy", "Airy" }, { "Metallic", "Organic" } };
     StringArray t;
     for (int l = 0; l < kNumLanes; ++l)
     {

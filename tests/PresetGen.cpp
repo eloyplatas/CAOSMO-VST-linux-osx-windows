@@ -84,6 +84,7 @@ namespace
             const String head = line.upToFirstOccurrenceOf (" ", false, false);
             if (head == "MOD") { if (line.contains ("Macro")) usesMacro = true; if (! addMod (p, line)) return false; continue; }
             if (head == "KEY") { p.setKeyCurve (KeyCurve::fromString (line.fromFirstOccurrenceOf (" ", false, false).trim())); continue; }
+            if (head == "DIST") { p.setDistCurve (KeyCurve::fromString (line.fromFirstOccurrenceOf (" ", false, false).trim())); continue; }
             auto toks = StringArray::fromTokens (line.fromFirstOccurrenceOf (" ", false, false), " ", ""); toks.removeEmptyStrings();
             for (auto& t : toks)
             {
@@ -108,6 +109,7 @@ namespace
                     id = venvId (i, k.toRawUTF8());
                 }
                 else if (head.startsWith ("ATTR")) id = attrId (head.getTrailingIntValue() - 1, k.toRawUTF8());
+                else if (head.startsWith ("TRIG")) id = trigId (head.getTrailingIntValue() - 1, k.toRawUTF8());
                 else if (head.startsWith ("FX") && head.length() == 4) id = fxId (head[2] - 'A', head[3] - '1', k.toRawUTF8());
                 else if (head.startsWith ("FX") && head.length() == 3) id = busId (head[2] - 'A', k.toRawUTF8());
                 else if (head == "G") id = k;
@@ -180,8 +182,11 @@ int generatePresets (const File& src, const File& out)
     Array<Preset> list;
     StringArray all = StringArray::fromLines (src.loadFileAsString());
     const int firstExtra = all.size();
-    auto extra = src.getSiblingFile ("factory2.txt");
-    if (extra.existsAsFile()) all.addArray (StringArray::fromLines (extra.loadFileAsString()));
+    for (auto* name : { "factory2.txt", "factory3.txt" })
+    {
+        auto extra = src.getSiblingFile (name);
+        if (extra.existsAsFile()) all.addArray (StringArray::fromLines (extra.loadFileAsString()));
+    }
     int lineNo = 0;
     for (auto line : all)
     {

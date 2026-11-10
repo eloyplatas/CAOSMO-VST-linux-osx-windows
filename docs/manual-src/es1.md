@@ -9,19 +9,33 @@ El resultado es un instrumento que se comporta más como un objeto físico que c
 | Bloque | Contenido |
 | --- | --- |
 | Voces | Hasta 64 voces. Cada nota suena por **3 capas** independientes. |
-| Motores | **12 sistemas caóticos** más *None* para apagar una capa. |
-| Por capa | 2 subosciladores, drift analógico, filtro de 12 tipos, envolvente con 4 modos (ADSR, Vactrol, LFO, VENV), EQ de 5 bandas con 4 snapshots y morph, drive con 5 caracteres, 3 envíos. |
-| Modulación | 8 LFOs enlazables, 4 envolventes dibujables (VENV), 4 atractores, matriz de 24 rutas, keytrack dibujable, 5 macros, MIDI learn y MPE. |
+| Motores | **17 sistemas caóticos y estocásticos** más *None* para apagar una capa. |
+| Por capa | 2 subosciladores, drift analógico, filtro de 14 tipos, envolvente con 4 modos (ADSR, Vactrol, LFO, VENV), EQ de 5 bandas con 4 snapshots y morph, drive con 5 caracteres, 3 envíos. |
+| Modulación | 8 LFOs enlazables, 4 envolventes dibujables (VENV), 4 atractores de 12 tipos, 4 generadores de disparos aleatorios, 10 distribuciones (una dibujable), matriz de 24 rutas, keytrack dibujable, 5 macros, MIDI learn y MPE. |
 | Master | EQ con analizador, saturador, compresor con sidechain, width y limitador true-peak. |
-| Efectos | 3 buses con 3 ranuras (6 efectos) y el rack **DELUGE FX** con los efectos del firmware abierto del Synthstrom Audible Deluge. |
-| Presets | 256 de fábrica en 17 categorías, con etiquetas, favoritos y búsqueda. |
+| Efectos | 3 buses con 3 ranuras (12 efectos, 4 de ellos espectrales) y el rack **DELUGE FX** con los efectos del firmware abierto del Synthstrom Audible Deluge. |
+| Presets | 288 de fábrica en 20 categorías, con etiquetas, favoritos y búsqueda. |
 | Formatos | VST3 y aplicación standalone para Linux, Windows y macOS (universal). |
 
 ## Origen {#intro-origen}
 
 Caosmo es una reimplementación funcional del concepto descrito en la documentación pública de **Fragua**, de Pura Belia: un sintetizador de caos de tres capas por nota con doce motores. Todo el código, los nombres, la interfaz, los presets y este manual son propios; no contiene código ni recursos de Fragua. Es una obra independiente sin relación con Pura Belia.
 
-## Novedades de la versión 0.4 {#intro-novedades}
+## Novedades de la versión 0.5 {#intro-novedades}
+
+Todo lo nuevo viene de estudiar la documentación de SuperCollider en busca de generadores de caos y azar:
+
+- Cinco motores nuevos: **Gendy** (Xenakis), **Maps** (diez mapas caóticos), **Ecosystems** (neuronas, relojes químicos, presas y depredadores), **Noise** y **Membrane** (pelota que rebota sobre un cuerpo modal).
+- Logistic/Henon puede iterar al ritmo de la nota y sonar afinado.
+- Cuatro **generadores de disparos** aleatorios (Dust, Gauss, Coin, Lorenz, Clock) con acciones directas.
+- Diez **distribuciones** de probabilidad, una de ellas dibujable, para LFOs, disparos y Note Random.
+- Ondas de LFO con memoria: Brownian, Geo Brownian, Noise Ring y Markov.
+- Filtros **Friction** y **Spring**, siete tipos de atractor nuevos y seis efectos: Diffuse, Mag Noise, Rand Comb, Noise Synth, Wave Loss y Squiz.
+- 32 presets nuevos en tres categorías: Stochastic, Neurons & Maps y Bouncing Bodies.
+
+Todo se añade sin romper nada: los presets y proyectos de la 0.4 suenan igual.
+
+## Novedades de la versión 0.4 {#intro-novedades-04}
 
 - Rack **DELUGE FX** con Mod FX, EQ, destrucción, delay, tres reverbs, compresor y stutter del firmware del Deluge.
 - Caosmo pasa a distribuirse bajo la **GNU GPL v3**.
@@ -37,7 +51,7 @@ Caosmo es una reimplementación funcional del concepto descrito en la documentac
 
 # Instalación {#instalacion}
 
-Cada paquete contiene el plugin `Caosmo.vst3`, la versión standalone, la licencia y el manual. Los 256 presets van dentro del plugin: no hay que copiar nada más.
+Cada paquete contiene el plugin `Caosmo.vst3`, la versión standalone, la licencia y el manual. Los 288 presets van dentro del plugin: no hay que copiar nada más.
 
 | Sistema | Copia `Caosmo.vst3` en | Standalone |
 | --- | --- | --- |
@@ -120,7 +134,7 @@ Cada nota que tocas reserva una **voz**. Dentro de la voz, cada capa con motor t
 
 1. **Motor**: genera la señal resolviendo su sistema, afinado a la nota si es un motor con altura.
 2. **Sub 1** (otra instancia del mismo motor, 1–3 octavas abajo) y **Sub 2** (seno 1–2 octavas abajo) se suman al motor.
-3. **Filtro** de 12 tipos.
+3. **Filtro** de 14 tipos.
 4. **Envolvente** (VCA, y en modo LPG también el filtro), escalada por la velocidad.
 
 Después las voces de cada capa se suman en el **bus de la capa**, donde se aplican **EQ**, **drive**, **width**, **bass mono**, **pan**, **nivel** y los **envíos** a los buses FX A–C. Los buses de capa y los retornos de FX se suman, pasan por el rack **DELUGE FX** (si está activo) y por la **cadena master**.
@@ -220,7 +234,7 @@ Caosmo tiene tres capas idénticas (L1, L2, L3). Cada nota suena por todas las c
 
 | Parámetro | Rango (defecto) | Qué hace |
 | --- | --- | --- |
-| Engine | None + 12 motores (L1 Kuramoto, L2 y L3 None) | Motor de la capa. Los ajustes de los 12 motores se conservan: puedes cambiar de motor y volver sin perder nada. |
+| Engine | None + 17 motores (L1 Kuramoto, L2 y L3 None) | Motor de la capa. Los ajustes de los 17 motores se conservan: puedes cambiar de motor y volver sin perder nada. |
 | PWR | On/Off (On) | Apaga la capa: deja de calcularse y sus envolventes dejan de modular. |
 | S / M | Solo / Mute | Aíslan o silencian la capa sin dejar de calcularla (sus fuentes siguen modulando). |
 | MIDI Ch | Omni, 1–16 (Omni) | Canal que dispara la capa. Con MPE activo se ignora. |

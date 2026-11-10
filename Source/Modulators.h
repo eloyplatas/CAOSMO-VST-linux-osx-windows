@@ -2,6 +2,7 @@
 #pragma once
 #include "DSP.h"
 #include <juce_core/juce_core.h>
+#include <climits>
 
 namespace cz
 {
@@ -219,14 +220,133 @@ struct KeyCurve
 };
 
 //==============================================================================
+// v0.5 random distributions, after SuperCollider's random patterns (Pwhite, Pgauss, Plprand, Phprand, Pmeanrand,
+// Pexprand, Pcauchy, Pbeta, Ppoisson, Pprob). Every function maps uniform numbers to a value in [0, 1].
+struct DistTable
+{
+    static constexpr int N = 256;
+    float inv[N + 1] {};                       // inverse CDF of the drawn density
+    DistTable() { for (int i = 0; i <= N; ++i) inv[i] = (float) i / N; }
+    static DistTable fromCurve (const KeyCurve& k)
+    {
+        DistTable t; float pdf[N], cdf[N + 1]; cdf[0] = 0;
+        for (int i = 0; i < N; ++i) { pdf[i] = 0.002f + std::max (0.f, (k.eval ((i + 0.5f) / N) + 1.f) * 0.5f); cdf[i + 1] = cdf[i] + pdf[i]; }
+        int j = 0;
+        for (int i = 0; i <= N; ++i)
+        {
+            const float target = cdf[N] * (float) i / N;
+            while (j < N - 1 && cdf[j + 1] < target) ++j;
+            const float w = cdf[j + 1] - cdf[j];
+            t.inv[i] = clampf (((float) j + (w > 0 ? (target - cdf[j]) / w : 0.f)) / N, 0.f, 1.f);
+        }
+        return t;
+    }
+    float eval (float u) const { const float f = clampf (u, 0.f, 1.f) * N; const int i = std::min ((int) f, N - 1); return inv[i] + (inv[i + 1] - inv[i]) * (f - (float) i); }
+};
+
+inline float distSample (int d, float u1, float u2, const DistTable* drawn)
+{
+    switch (d)
+    {
+        case 1: { const float r = std::sqrt (-2.f * std::log (std::max (u1, 1e-7f))); return clampf (0.5f + 0.17f * r * std::cos (k2Pi * u2), 0.f, 1.f); }   // Gauss
+        case 2: return std::min (u1, u2);                                                    // Low  (Plprand)
+        case 3: return std::max (u1, u2);                                                    // High (Phprand)
+        case 4: return 0.5f * (u1 + u2);                                                     // Mean (Pmeanrand)
+        case 5: return -std::log (1.f - u1 * 0.99326f) / 5.f;                                 // Exponential, skewed towards 0
+        case 6: return clampf (0.5f + 0.08f * std::tan (kPi * (u1 - 0.5f) * 0.98f), 0.f, 1.f); // Cauchy: heavy tails
+        case 7: return 0.5f - 0.5f * std::cos (kPi * u1);                                    // Beta(0.5, 0.5): U-shaped
+        case 8: {                                                                            // Poisson, lambda = 4, scaled to 0..1
+            static const float cdf[13] = { 0.0183f, 0.0916f, 0.2381f, 0.4335f, 0.6288f, 0.7851f, 0.8893f, 0.9489f, 0.9786f, 0.9919f, 0.9972f, 0.9991f, 1.f };
+            int k = 0; while (k < 12 && u1 > cdf[k]) ++k; return (float) k / 12.f; }
+        case 9: return drawn ? drawn->eval (u1) : u1;                                        // Drawn (Pprob)
+        default: return u1;                                                                  // Uniform (Pwhite)
+    }
+}
+
+//==============================================================================
 // Chaotic modulator: Lorenz, Rössler, Chua, Duffing, Sprott B
+// v0.5: + Henon, Latoocarfian, Standard and Gingerbread maps, FitzHugh-Nagumo, Lotka-Volterra and Arneodo-Coullet-Tresser
 struct AttrMod
 {
     float x = 0.1f, y = 0.f, z = 0.f, ph = 0.f, sm = 0.f, nx = 0, ny = 0, nz = 0;
-    void reset (uint32_t seed) { x = 0.1f + 0.3f * hashF (seed); y = 0.05f; z = 0.1f; ph = 0; sm = 0; }
-    static float tauScale (int t) { static const float s[5] = { 0.7f, 6.f, 2.1f, 5.2f, 4.f }; return s[juce::jlimit (0, 4, t)]; }
+    int lastType = -1; float acc = 0, prevN[3] {}, curN[3] {}, initP2 = -1, initP1 = -1;
+    void reset (uint32_t seed) { x = 0.1f + 0.3f * hashF (seed); y = 0.05f; z = 0.1f; ph = 0; sm = 0; lastType = -1; acc = 0; }
+    static float tauScale (int t)
+    {
+        static const float s[12] = { 0.7f, 6.f, 2.1f, 5.2f, 4.f, 8.f, 8.f, 8.f, 8.f, 33.36f, 5.3f, 23.31f };
+        return s[juce::jlimit (0, 11, t)];
+    }
+    void initType (int t, float p1, float p2)
+    {
+        switch (t)
+        {
+            case 5: case 6: x = 0.1f; y = 0.1f; break;
+            case 7: x = 0.5f; y = 0.2f + p2 * 5.f; break;
+            case 8: x = 1.2f + (p1 - 0.5f) * 3.f; y = 2.1f + (p2 - 0.5f) * 3.f; break;
+            case 9: x = 0.1f; y = 0.f; break;
+            case 10: { const float a = 0.5f + 1.5f * p1, d = 0.5f + 1.5f * p2; x = d * 1.8f; y = a * 0.6f; } break;
+            case 11: x = 0.6f; y = 0.5f; z = 0.5f; break;
+            default: x = 0.1f; y = 0.05f; z = 0.1f; break;
+        }
+        lastType = t; initP1 = p1; initP2 = p2; acc = 0;
+        for (int i = 0; i < 3; ++i) prevN[i] = curN[i] = 0;
+    }
+    void stepMap (int type, float tau, float p1, float p2)
+    {
+        if ((type == 8 && (std::fabs (p1 - initP1) > 0.01f || std::fabs (p2 - initP2) > 0.01f)) || (type == 7 && std::fabs (p2 - initP2) > 0.01f)) initType (type, p1, p2);
+        acc += tau;
+        int guard = 0;
+        while (acc >= 1.f && guard++ < 256)
+        {
+            acc -= 1.f;
+            for (int i = 0; i < 3; ++i) prevN[i] = curN[i];
+            float a, b, xp = x;
+            switch (type)
+            {
+                case 5: a = 1.f + 0.4f * p1; b = 0.15f + 0.2f * p2; x = 1.f - a * x * x + y; y = b * xp; if (! finiteF (x) || std::fabs (x) > 3.f) { x = 0.1f; y = 0.1f; }
+                        curN[0] = x / 1.5f; curN[1] = y / 0.45f; curN[2] = 0.5f * (x / 1.5f + y / 0.45f); break;
+                case 6: a = 1.f + 4.f * (p1 - 0.5f); b = 3.f + 6.f * (p2 - 0.5f); x = std::sin (y * b) + 0.8f * std::sin (xp * b); y = std::sin (xp * a) + 0.8f * std::sin (y * a);
+                        curN[0] = x / 1.8f; curN[1] = y / 1.8f; curN[2] = x * y / 3.24f; break;
+                case 7: a = 0.3f + 4.f * p1; y = (float) wrap2piM (y + a * std::sin (x)); x = (float) wrap2piM (x + y);
+                        curN[0] = (x - kPi) / kPi; curN[1] = (y - kPi) / kPi; curN[2] = std::sin (x + y); break;
+                default: x = 1.f - y + std::fabs (xp); y = xp;
+                         curN[0] = fastTanh ((x - 1.5f) * 0.3f); curN[1] = fastTanh ((y - 1.5f) * 0.3f); curN[2] = fastTanh ((x - y) * 0.3f); break;
+            }
+        }
+        const float t = clampf (acc, 0.f, 1.f);
+        nx = clampf (prevN[0] + (curN[0] - prevN[0]) * t, -1.f, 1.f); ny = clampf (prevN[1] + (curN[1] - prevN[1]) * t, -1.f, 1.f); nz = clampf (prevN[2] + (curN[2] - prevN[2]) * t, -1.f, 1.f);
+    }
+    static double wrap2piM (double v) { v = std::fmod (v, 6.283185307179586); return v < 0 ? v + 6.283185307179586 : v; }
+    void stepOde (int type, float tau, float p1, float p2)
+    {
+        int sub = 1 + (int) (tau / 0.02f); sub = std::min (sub, 64);
+        const float h = tau / (float) sub;
+        for (int i = 0; i < sub; ++i)
+        {
+            float dx, dy, dz = 0;
+            if (type == 9) { const float I = 0.3f + 1.2f * p1, e = 0.02f + 0.28f * p2 * p2; dx = x - x * x * x / 3.f - y + I; dy = e * (x + 0.7f - 0.8f * y); }
+            else if (type == 10) { const float a = 0.5f + 1.5f * p1, d = 0.5f + 1.5f * p2; dx = x * (a - y); dy = y * (x - d); }
+            else { const float al = 1.2f + 0.5f * p1, mu = 0.002f + 0.03f * p2;
+                   dx = x * (1.1f - x / 2 - y / 2 - z / 10) + mu; dy = y * (-0.5f + x / 2 + y / 10 - z / 10) + mu; dz = z * (al + 0.2f - al * x - y / 10 - z / 10) + mu; }
+            x += dx * h; y += dy * h; z += dz * h;
+            if (type >= 10) { x = std::max (x, 1e-5f); y = std::max (y, 1e-5f); z = std::max (z, 1e-5f); }
+        }
+        if (! finiteF (x) || ! finiteF (y) || ! finiteF (z) || std::fabs (x) > 200.f || std::fabs (y) > 200.f || std::fabs (z) > 200.f) initType (type, p1, p2);
+        if (type == 9) { nx = x * 0.5f; ny = (y - 0.6f) / 1.2f; nz = fastTanh (x - y); }
+        else if (type == 10) { const float a = 0.5f + 1.5f * p1, d = 0.5f + 1.5f * p2; nx = fastTanh ((x - d) / (d + 0.5f)); ny = fastTanh ((y - a) / (a + 0.5f)); nz = fastTanh (x * y - a * d); }
+        else { nx = (x - 1.1f) * 0.9f; ny = (y - 0.8f) * 0.8f; nz = (z - 2.5f) * 0.3f; }
+        nx = clampf (nx, -1.f, 1.f); ny = clampf (ny, -1.f, 1.f); nz = clampf (nz, -1.f, 1.f);
+    }
     void step (int type, float tau, float p1, float p2)
     {
+        if (type >= 5)
+        {
+            if (type != lastType) initType (type, p1, p2);
+            if (type <= 8) stepMap (type, tau, p1, p2); else stepOde (type, tau, p1, p2);
+            return;
+        }
+        if (lastType >= 5) initType (type, p1, p2);
+        lastType = type;
         int sub = 1 + (int) (tau / 0.008f); sub = std::min (sub, 64);
         const float h = tau / (float) sub;
         for (int i = 0; i < sub; ++i)
@@ -275,7 +395,8 @@ struct LfoEval
         return p < skew ? 0.5f * p / skew : 0.5f + 0.5f * (p - skew) / (1.f - skew);
     }
     static inline bool isRandom (int wave) { return wave >= 5; }
-    static float value (double total, int wave, float skew, uint32_t seed)
+    static inline bool isStateful (int wave) { return wave >= 8; }
+    static float value (double total, int wave, float skew, uint32_t seed, int dist = 0, const DistTable* drawn = nullptr)
     {
         const double fl = std::floor (total);
         const float ph = (float) (total - fl);
@@ -288,8 +409,10 @@ struct LfoEval
             case 2: return 2.f * p - 1.f;
             case 3: return 1.f - 2.f * p;
             case 4: return p < 0.5f ? 1.f : -1.f;
-            case 5: return hashF (seed * 7919u + cyc) * 2.f - 1.f;
-            case 6: { const float a = hashF (seed * 7919u + cyc), b = hashF (seed * 7919u + cyc + 1u); const float u = 0.5f - 0.5f * sinT (0.25f + 0.5f * p);
+            case 5: return distSample (dist, hashF (seed * 7919u + cyc), hashF (seed * 104729u + cyc), drawn) * 2.f - 1.f;
+            case 6: { const float a = distSample (dist, hashF (seed * 7919u + cyc), hashF (seed * 104729u + cyc), drawn),
+                                  b = distSample (dist, hashF (seed * 7919u + cyc + 1u), hashF (seed * 104729u + cyc + 1u), drawn);
+                      const float u = 0.5f - 0.5f * sinT (0.25f + 0.5f * p);
                       return (a + (b - a) * u) * 2.f - 1.f; }
             default:
             {   // 1-D gradient noise over two octaves
@@ -309,6 +432,110 @@ struct LfoEval
 struct LfoState
 {
     double total = 0, start = 0; uint32_t seed = 1; float sl = 0, fade = 1.f, last = 0;
-    void reset (float phase, uint32_t sd) { total = start = phase; seed = sd; sl = 0; }
+    // v0.5 stateful random waves: Brownian (Pbrown / LFBrownNoise), Geo Brownian (Pgbrown),
+    // Noise Ring (Wiard noise ring, DNoiseRing) and Markov (Pfsm / Dfsm). Replayed from the start after a Loop Lock reset.
+    int64_t sCyc = INT64_MIN; float walk = 0, sPrev = 0, sCur = 0; uint32_t reg = 0; int mst = 0; float levels[8] {}; int sWave = -1, sDist = -1;
+    void reset (float phase, uint32_t sd) { total = start = phase; seed = sd; sl = 0; sCyc = INT64_MIN; }
+
+    void initState (int wave, int dist, const DistTable* drawn)
+    {
+        walk = 0; sPrev = sCur = 0; mst = 0;
+        reg = hash32 (seed * 2654435761u) & 0xFFFFu; if (reg == 0) reg = 0x5A3Cu;
+        for (int i = 0; i < 8; ++i) levels[i] = distSample (dist, hashF (seed * 31u + (uint32_t) i), hashF (seed * 37u + (uint32_t) i), drawn) * 2.f - 1.f;
+        if (wave == 9) walk = -0.5f;
+        sWave = wave; sDist = dist;
+    }
+    void stepState (int wave, float skew, int dist, const DistTable* drawn, int64_t c)
+    {
+        const uint32_t cu = (uint32_t) c;
+        const float u1 = hashF (seed * 7919u + cu), u2 = hashF (seed * 104729u + cu), u3 = hashF (seed * 15485863u + cu);
+        sPrev = sCur;
+        switch (wave)
+        {
+            case 8: {   // Brownian: reflected random walk, step drawn from the distribution
+                const float stepSz = 0.03f + 0.6f * skew * skew;
+                walk += (distSample (dist, u1, u2, drawn) * 2.f - 1.f) * stepSz;
+                if (walk > 1.f) walk = 2.f - walk; else if (walk < -1.f) walk = -2.f - walk;
+                sCur = walk; } break;
+            case 9: {   // Geo Brownian: the walk moves in proportion to its value (log domain)
+                const float stepSz = 0.05f + 1.2f * skew * skew;
+                walk += (distSample (dist, u1, u2, drawn) * 2.f - 1.f) * stepSz;
+                const float lo = -3.f; if (walk > 0.f) walk = -walk; else if (walk < lo) walk = 2.f * lo - walk;
+                sCur = (std::exp (walk) - 0.0498f) / 0.9502f * 2.f - 1.f; } break;
+            case 10: {  // Noise ring: 16-bit shift register; the bit leaving the ring flips with probability Skew^2
+                const uint32_t outBit = (reg >> 15) & 1u;
+                const uint32_t nb = u1 < skew * skew ? (outBit ^ 1u) : outBit;
+                reg = ((reg << 1) | nb) & 0xFFFFu;
+                sCur = (float) (reg & 0xFFu) / 127.5f - 1.f; } break;
+            default: {  // Markov chain over 8 levels: low Skew stays near, high Skew jumps anywhere
+                const float k = 0.3f + 4.f * (1.f - skew);
+                float w[8], tot = 0; for (int i = 0; i < 8; ++i) { w[i] = std::exp (-k * (float) std::abs (i - mst)); tot += w[i]; }
+                float u = u3 * tot; int nx = 7; for (int i = 0; i < 8; ++i) { if (u < w[i]) { nx = i; break; } u -= w[i]; }
+                mst = nx; sCur = levels[mst]; } break;
+        }
+    }
+    float statefulValue (int wave, float skew, int dist, const DistTable* drawn)
+    {
+        const double fl = std::floor (total); const int64_t cyc = (int64_t) fl; const float ph = (float) (total - fl);
+        if (wave != sWave || dist != sDist || sCyc == INT64_MIN || cyc < sCyc || cyc - sCyc > 4096)
+        {
+            const int64_t base = (int64_t) std::floor (start);
+            initState (wave, dist, drawn);
+            sCyc = (cyc >= base && cyc - base <= 4096) ? base - 1 : cyc - 1;
+        }
+        while (sCyc < cyc) { ++sCyc; stepState (wave, skew, dist, drawn, sCyc); }
+        if (wave == 8 || wave == 9) { const float u = 0.5f - 0.5f * sinT (0.25f + 0.5f * ph); return sPrev + (sCur - sPrev) * u; }
+        return sCur;
+    }
+};
+
+//==============================================================================
+// v0.5 stochastic trigger generator (SuperCollider Dust, GaussTrig, CoinGate on Impulse, LorenzTrig, Impulse)
+struct TrigGen
+{
+    double toNext = 0; float gate = 0, env = 0, sh = 0, out = 0; bool odd = false; float lx = 1.f, ly = 1.f, lz = 20.f; Rng rng;
+    void reset (uint32_t s) { rng.seed (s); toNext = 0; gate = env = sh = out = 0; odd = false; lx = 1.f; ly = 1.f; lz = 20.f; }
+    // returns true if it fired during these n samples
+    bool tick (int mode, float rateHz, float dev, float prob, int shape, float lenMs, int dist, const DistTable* drawn, float level, float sr, int n)
+    {
+        rateHz = clampf (rateHz, 0.01f, 400.f);
+        const float dt = (float) n / sr;
+        bool fire = false;
+        if (mode == 0) fire = rng.next() < 1.f - std::exp (-rateHz * dt);           // Dust: Poisson process
+        else
+        {
+            if (mode == 3)
+            {   // LorenzTrig: the instantaneous rate follows a Lorenz attractor between Rate*(1-Dev) and Rate*(1+3*Dev)
+                const float hh = std::min (0.01f, dt * 8.f);
+                for (int i = 0; i < 2; ++i) { const float dx = 10.f * (ly - lx), dy = lx * (28.f - lz) - ly, dz = lx * ly - 8.f / 3.f * lz; lx += dx * hh; ly += dy * hh; lz += dz * hh; }
+                if (! finiteF (lx) || std::fabs (lx) > 100.f) { lx = 1.f; ly = 1.f; lz = 20.f; }
+                const float u = clampf (0.5f + lx / 40.f, 0.f, 1.f);
+                rateHz *= (1.f - dev) + 4.f * dev * u;
+            }
+            toNext -= dt;
+            if (toNext <= 0.0)
+            {
+                fire = true;
+                double iv = 1.0 / rateHz;
+                if (mode == 1) { const float r = std::sqrt (-2.f * std::log (std::max (rng.next(), 1e-7f))) * std::cos (k2Pi * rng.next()); iv *= std::max (0.05, 1.0 + 0.5 * dev * r); }
+                if (mode == 4) { odd = ! odd; iv *= odd ? 1.0 + dev * 0.5 : 1.0 - dev * 0.5; }   // Clock with swing
+                toNext += iv; if (toNext < 0.0) toNext = iv;
+            }
+        }
+        if (fire && rng.next() >= prob) fire = false;                                   // CoinGate
+        const float lenS = std::max (lenMs * 0.001f, 0.001f);
+        if (fire) { gate = lenS; env = 1.f; sh = distSample (dist, rng.next(), rng.next(), drawn); }
+        gate = std::max (0.f, gate - dt);
+        env *= std::exp (-dt / lenS);
+        switch (shape)
+        {
+            case 0: out = gate > 0.f ? 1.f : 0.f; break;
+            case 1: out = env; break;
+            case 2: out = sh; break;
+            default: out = sh * env; break;
+        }
+        out *= level;
+        return fire;
+    }
 };
 } // namespace cz

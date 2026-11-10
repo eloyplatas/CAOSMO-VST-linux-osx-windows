@@ -36,7 +36,8 @@ struct LaneRefs
     PRef ep[kNumEngines + 1][kMaxEngP]; PRef ec[kNumEngines + 1][kMaxEngC];
     int np[kNumEngines + 1] = {}, nc[kNumEngines + 1] = {};
 };
-struct LfoRefs { PRef on, wave, rate, sync, div, level, phase, slew, skew, afade, rfade, mode, retrig, link, linkrel; };
+struct LfoRefs { PRef on, wave, rate, sync, div, level, phase, slew, skew, afade, rfade, mode, retrig, link, linkrel, dist; };
+struct TrigRefs { PRef on, mode, rate, sync, div, dev, prob, shape, len, dist, action, level; };
 struct VenvRefs { PRef on, time, sync, div, level, za, zd, zs, zr, pa, pd, ps, mode, voicing, retrig; };
 struct AttrRefs { PRef on, type, rate, sync, div, p1, p2, smooth, level, out, mode, retrig; };
 struct SlotRefs { PRef src, dst, amt, pol, curve, lag, fin, fout, jit, quant, cc; };
@@ -94,6 +95,7 @@ struct UiData
     std::atomic<float> grains[kNumLanes][16][3] {};          // phase, amplitude, pan of the newest voice's grains
     std::atomic<int> activeVoices { 0 }; std::atomic<float> mpePress { 0 }, mpeSlide { 0 }, mpeGlide { 0 };
     std::atomic<float> busPk[kNumBuses] {};
+    std::atomic<float> trigVal[kNumTrig] {};
     std::atomic<double> bpm { 120.0 };
 };
 
@@ -137,6 +139,9 @@ public:
     void setShape (int i, const VShape& s, const juce::String& name, bool undoable = true);
     KeyCurve getKeyCurve();
     void setKeyCurve (const KeyCurve& k);
+    juce::ValueTree distTree();
+    KeyCurve getDistCurve();
+    void setDistCurve (const KeyCurve& k);
 
     // ---- EQ snapshots (message thread) ----
     int eqUsedMask (int lane) const { return eqUsed[lane].load(); }
@@ -186,7 +191,8 @@ private:
     double sr = 48000.0; int maxBlock = 512;
     LaneRefs lr[kNumLanes]; LfoRefs lfoR[kNumLfo]; VenvRefs venvR[kNumVenv]; AttrRefs attrR[kNumAttr]; SlotRefs slotR[kNumSlots];
     FxRefs fxR[kNumBuses][kSlotsPerBus]; PRef busLevel[kNumBuses]; MasterRefs mr;
-    PRef outGain, voicesP, legato, glide, glideMode, tune, pbRange, pbNote, mpeMode, hqP, macro[kNumMacros], loopOn, loopLen, loopSync, loopDiv;
+    PRef outGain, voicesP, legato, glide, glideMode, tune, pbRange, pbNote, mpeMode, hqP, macro[kNumMacros], loopOn, loopLen, loopSync, loopDiv, nrandDist;
+    TrigRefs trigR[kNumTrig]; TrigGen gTrig[kNumTrig]; float gTrigVal[kNumTrig] = {}; float trigStutterGate = 0;
 
     std::vector<std::unique_ptr<Voice>> voices;
     LaneBus bus[kNumLanes];
@@ -204,8 +210,8 @@ private:
     double loopPos = 0; bool wasPlaying = false; double ppq = 0; bool playing = false;
 
     // shapes (audio-thread copies) and their hand-off
-    VShape aShapes[kNumVenv]; KeyCurve aKey;
-    VShape pShapes[kNumVenv]; KeyCurve pKey; juce::SpinLock shapeLock; std::atomic<bool> shapesPending { false };
+    VShape aShapes[kNumVenv]; KeyCurve aKey; DistTable aDist;
+    VShape pShapes[kNumVenv]; KeyCurve pKey; DistTable pDist; juce::SpinLock shapeLock; std::atomic<bool> shapesPending { false };
     std::atomic<bool> shapesDirtyFromTree { true }, eqReload { true };
 
     // EQ snapshots

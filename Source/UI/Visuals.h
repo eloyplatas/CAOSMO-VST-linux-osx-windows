@@ -57,7 +57,7 @@ private:
 class KeyEditor : public juce::Component, private juce::Timer
 {
 public:
-    explicit KeyEditor (Ctx& c);
+    explicit KeyEditor (Ctx& c, bool distribution = false);
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent&) override;
@@ -66,7 +66,8 @@ public:
 private:
     void timerCallback() override;
     juce::Rectangle<float> area() const;
-    Ctx& ctx; KeyCurve curve; juce::String loaded; int drag = -1;
+    juce::ValueTree tree(); void store();
+    Ctx& ctx; bool dist = false; KeyCurve curve; juce::String loaded; int drag = -1;
 };
 
 class AttractorView : public juce::Component, private juce::Timer

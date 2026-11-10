@@ -1,4 +1,4 @@
-# Los doce motores {#motores}
+# Los doce motores originales {#motores}
 
 Cada motor resuelve un sistema distinto. Los **motores con altura** ajustan su escala de tiempo a la nota MIDI; los **motores sin altura** corren a una velocidad propia y dan texturas, ruidos y ritmos internos. Para afinar estos últimos usa Sub 2, el filtro Comb o Formant, o el BPF interno de Gray-Scott.
 
@@ -16,6 +16,8 @@ Cada motor resuelve un sistema distinto. Los **motores con altura** ajustan su e
 | 10 | Bowed String | Sí | Cuerdas frotadas, campanas, cuerda de piano | Media |
 | 11 | Mackey-Glass | Sí | Tonos de retroalimentación, crujidos | Baja |
 | 12 | Circle Map | Sí | Engranajes, intervalos que se enganchan | Baja |
+
+Los motores 13–17 (Gendy, Maps, Ecosystems, Noise y Membrane), añadidos en la versión 0.5, tienen su propio capítulo: *Los motores de SuperCollider*.
 
 Los seis primeros parámetros de cada motor son los destinos *Motor 1–6* de la matriz, en el orden de las tablas siguientes.
 
@@ -114,7 +116,7 @@ El mapa de Hénon (1976) es su versión bidimensional:
 
 xₙ₊₁ = 1 − a·xₙ² + yₙ  yₙ₊₁ = b·xₙ
 
-**En Caosmo.** Los dos mapas se iteran **una vez por muestra**. A 48 kHz eso produce ruido con estructura: granulado, polvoriento, con tonos agudos fijos cuando el mapa cae en una ventana periódica (por ejemplo r ≈ 3,83 da un ciclo de periodo 3). No sigue la nota.
+**En Caosmo.** Con *Clock* en *Per Sample* (el modo por defecto) los dos mapas se iteran **una vez por muestra**. A 48 kHz eso produce ruido con estructura: granulado, polvoriento, con tonos agudos fijos cuando el mapa cae en una ventana periódica (por ejemplo r ≈ 3,83 da un ciclo de periodo 3). En ese modo no sigue la nota; con los relojes *Note* sí (ver la tabla).
 
 | Parámetro | Rango (defecto) | Qué hace |
 | --- | --- | --- |
@@ -124,6 +126,8 @@ xₙ₊₁ = 1 − a·xₙ² + yₙ  yₙ₊₁ = b·xₙ
 | B | 0–0,4 (0,3) | Segundo parámetro de Hénon: cuánto recuerda el mapa el valor anterior. |
 | Smooth | 0–1 (0) | Paso bajo de 20 kHz a 200 Hz con compensación de nivel: de siseo a retumbo. |
 | Drift | 0–1 (0) | Oscilación lenta (unos 6 s) de R y A: el ruido pasa por ventanas periódicas y vuelve. |
+| Iter Oct | −2 – 7 (3) | Con un reloj *Note*: iteraciones por ciclo de la nota, en octavas. |
+| Clock | Per Sample, Note Step, Note Linear, Note Cubic (Per Sample) | *Per Sample*: una iteración por muestra (ruido). Los relojes *Note* iteran a la nota × 2^Iter Oct con salida escalonada, lineal o cúbica: el mapa suena afinado. |
 
 **Puntos dulces.** Smooth 0,7 y un BPF resonante afinado a la nota: percusión de arena (*Sand Snare*). Drift alto y Morph a medio camino: radio entre emisoras (*Radio Static*).
 

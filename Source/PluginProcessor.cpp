@@ -66,6 +66,7 @@ void CaosmoProcessor::bindRefs()
     glide.bind (apvts, "glide"); glideMode.bind (apvts, "glide_mode"); tune.bind (apvts, "tune"); pbRange.bind (apvts, "pb_range");
     pbNote.bind (apvts, "pb_note"); mpeMode.bind (apvts, "mpe"); hqP.bind (apvts, "hq");
     loopOn.bind (apvts, "lfo_loop"); loopLen.bind (apvts, "lfo_looplen"); loopSync.bind (apvts, "lfo_loopsync"); loopDiv.bind (apvts, "lfo_loopdiv");
+    nrandDist.bind (apvts, "nrand_dist");
     for (int i = 0; i < kNumMacros; ++i) macro[i].bind (apvts, "macro" + String (i + 1));
     static const char* eqk[kEqN] = { "hpf", "hpfs", "lsf", "lsg", "mf", "mg", "mq", "hsf", "hsg", "lpf", "lpfs" };
 
@@ -100,6 +101,14 @@ void CaosmoProcessor::bindRefs()
         B (L.on, "on"); B (L.wave, "wave"); B (L.rate, "rate"); B (L.sync, "sync"); B (L.div, "div"); B (L.level, "level"); B (L.phase, "phase");
         B (L.slew, "slew"); B (L.skew, "skew"); B (L.afade, "afade"); B (L.rfade, "rfade"); B (L.mode, "mode"); B (L.retrig, "retrig");
         if ((i & 1) == 0) { B (L.link, "link"); B (L.linkrel, "linkrel"); }
+        B (L.dist, "dist");
+    }
+    for (int i = 0; i < kNumTrig; ++i)
+    {
+        auto& T = trigR[i];
+        auto B = [&] (PRef& r, const char* k) { r.bind (apvts, trigId (i, k)); };
+        B (T.on, "on"); B (T.mode, "mode"); B (T.rate, "rate"); B (T.sync, "sync"); B (T.div, "div"); B (T.dev, "dev"); B (T.prob, "prob");
+        B (T.shape, "shape"); B (T.len, "len"); B (T.dist, "dist"); B (T.action, "action"); B (T.level, "level");
     }
     for (int i = 0; i < kNumVenv; ++i)
     {
@@ -165,12 +174,17 @@ void CaosmoProcessor::ensureStateChildren()
     }
     auto kt = apvts.state.getOrCreateChildWithName ("KEYTRACK", nullptr);
     if (! kt.hasProperty ("pts")) kt.setProperty ("pts", KeyCurve().toString(), nullptr);
+    auto dc = apvts.state.getOrCreateChildWithName ("DISTCURVE", nullptr);
+    if (! dc.hasProperty ("pts")) dc.setProperty ("pts", "0,-1;0.25,0.2;0.5,1;0.75,0.2;1,-1", nullptr);
     auto eq = apvts.state.getOrCreateChildWithName ("EQSNAPS", nullptr);
     while (eq.getNumChildren() < kNumLanes) { ValueTree c ("LANE"); c.setProperty ("used", 1, nullptr); eq.appendChild (c, nullptr); }
 }
 
 ValueTree CaosmoProcessor::venvTree (int i) { return apvts.state.getChildWithName ("VENVSHAPES").getChild (i); }
 ValueTree CaosmoProcessor::keyTree() { return apvts.state.getChildWithName ("KEYTRACK"); }
+ValueTree CaosmoProcessor::distTree() { return apvts.state.getChildWithName ("DISTCURVE"); }
+KeyCurve CaosmoProcessor::getDistCurve() { return KeyCurve::fromString (distTree().getProperty ("pts").toString()); }
+void CaosmoProcessor::setDistCurve (const KeyCurve& k) { distTree().setProperty ("pts", k.toString(), &undo); syncShapesFromTree(); }
 VShape CaosmoProcessor::getShape (int i) { return VShape::fromString (venvTree (i).getProperty ("pts").toString()); }
 void CaosmoProcessor::setShape (int i, const VShape& s, const String& name, bool undoable)
 {
@@ -186,7 +200,8 @@ void CaosmoProcessor::syncShapesFromTree()
 {
     VShape s[kNumVenv]; for (int i = 0; i < kNumVenv; ++i) s[i] = getShape (i);
     const KeyCurve k = getKeyCurve();
-    { const SpinLock::ScopedLockType sl (shapeLock); for (int i = 0; i < kNumVenv; ++i) pShapes[i] = s[i]; pKey = k; }
+    const DistTable dt = DistTable::fromCurve (getDistCurve());
+    { const SpinLock::ScopedLockType sl (shapeLock); for (int i = 0; i < kNumVenv; ++i) pShapes[i] = s[i]; pKey = k; pDist = dt; }
     shapesPending = true;
     shapesDirtyFromTree = false;
 }
@@ -318,6 +333,7 @@ void CaosmoProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     for (int i = 0; i < kNumLfo; ++i) gLfo[i].reset (0.f, (uint32_t) (i + 1) * 977u);
     for (auto& g : gVenv) g.kill();
     for (int i = 0; i < kNumAttr; ++i) gAttr[i].reset ((uint32_t) i * 13u + 5u);
+    for (int i = 0; i < kNumTrig; ++i) gTrig[i].reset ((uint32_t) i * 7717u + 3u);
     heldCount = 0; for (auto& h : held) h = 0; lastNote = -1; loopPos = 0;
     setLatencySamples (master.latency()); // constant: the look-ahead delay runs whether or not the limiter is on
     if (shapesDirtyFromTree) syncShapesFromTree();
@@ -348,7 +364,7 @@ void CaosmoProcessor::startVoice (Voice& v, int note, float vel, int chan, bool 
     v.targetNote = (float) note;
     if (! doGlide) v.curNote = (float) note;
     else if (! (voicesP.geti() == 0 && wasActive)) v.curNote = (float) lastNote;
-    v.noteRand = hashF ((uint32_t) ageCounter * 2654435761u) * 2.f - 1.f;
+    v.noteRand = distSample (nrandDist.geti(), hashF ((uint32_t) ageCounter * 2654435761u), hashF ((uint32_t) ageCounter * 40503u + 17u), &aDist) * 2.f - 1.f;
     v.vsIdx = vspreadCounter++;
     v.rng.seed ((uint32_t) ageCounter * 7919u + (uint32_t) note);
     Rng& r = v.rng;
@@ -525,6 +541,7 @@ void CaosmoProcessor::computeSources (const Voice* v, float* src) const
     src[S_MpePressure] = v ? v->pressure : 0.f; src[S_MpeSlide] = v ? v->slide : slideGlobal; src[S_MpeBend] = v ? v->bend : 0.f;
     for (int i = 0; i < kNumMacros; ++i) src[S_Macro1 + i] = macro[i].get();
     src[S_NoteRandom] = v ? v->noteRand : 0.f;
+    for (int i = 0; i < kNumTrig; ++i) src[S_Trig1 + i] = gTrigVal[i];
 }
 
 void CaosmoProcessor::accumulateMods (const float* src, float* mod, Voice* v, int n, bool global)
@@ -624,7 +641,9 @@ void CaosmoProcessor::advanceLfos (LfoState* st, float* out, bool poly, bool gat
             st[i].total = ppq / (double) kLfoDivBeats[d] + L.phase.get();
         }
         else st[i].total += (double) lfoCyclesPerSample (i, globalMod[kDestLfoRate + i]) * n;
-        float v = LfoEval::value (st[i].total, L.wave.geti(), L.skew.get(), st[i].seed);
+        const int wv = L.wave.geti();
+        float v = LfoEval::isStateful (wv) ? st[i].statefulValue (wv, L.skew.get(), L.dist.geti(), &aDist)
+                                           : LfoEval::value (st[i].total, wv, L.skew.get(), st[i].seed, L.dist.geti(), &aDist);
         if (linked && lk.rel == 4 && (lk.k & 1)) v = -v;
         const float sl = L.slew.get();
         const float slewK = sl <= 0.f ? 0.f : std::exp (-(float) n / (s * sl * sl * 0.5f));
@@ -698,7 +717,7 @@ void CaosmoProcessor::renderChunk (float* outL, float* outR, const float* scL, c
     auto attrTick = [&] (AttrMod& a, int i)
     {
         const auto& A = attrR[i];
-        const int t = jlimit (0, 4, A.type.geti());
+        const int t = jlimit (0, kNumAttrTypes - 1, A.type.geti());
         const float hz = modRateHz (A.rate, A.sync, A.div, globalMod[kDestAttrRate + i]);
         a.step (t, hz * AttrMod::tauScale (t) * (float) n / s, A.p1.get(), A.p2.get());
         const float sm = A.smooth.get();
@@ -711,6 +730,35 @@ void CaosmoProcessor::renderChunk (float* outL, float* outR, const float* scL, c
         gAttrVal[i] = attrTick (gAttr[i], i);
         const int w = ui.attrW[i].load(); ui.attrTrail[i][w][0] = gAttr[i].nx; ui.attrTrail[i][w][1] = gAttr[i].ny; ui.attrTrail[i][w][2] = gAttr[i].nz;
         ui.attrW[i].store ((w + 1) & 255); ui.attrVal[i].store (gAttrVal[i]);
+    }
+
+    // ---- v0.5 stochastic triggers (global) ----
+    trigStutterGate = 0;
+    for (int i = 0; i < kNumTrig; ++i)
+    {
+        const auto& T = trigR[i];
+        if (! T.on.on()) { gTrigVal[i] = 0; ui.trigVal[i].store (0.f); continue; }
+        const float hz = modRateHz (T.rate, T.sync, T.div, globalMod[kDestTrigRate + i]);
+        const bool fired = gTrig[i].tick (T.mode.geti(), hz, T.dev.get(), T.prob.mod (globalMod[kDestTrigProb + i]), T.shape.geti(), T.len.get(),
+                                          T.dist.geti(), &aDist, T.level.get(), s, n);
+        gTrigVal[i] = gTrig[i].out;
+        ui.trigVal[i].store (gTrig[i].gate > 0.f ? 1.f : gTrig[i].env * 0.6f);
+        const int act = T.action.geti();
+        if (act == 3 && gTrig[i].gate > 0.f) trigStutterGate = 1.f;
+        if (! fired) continue;
+        if (act == 1)
+        {   // re-attack the lane envelopes of held notes
+            for (auto& vp : voices) if (vp->active && vp->gate) for (auto& lv : vp->lane) if (lv.active) lv.env.noteOn (vp->rng.bi());
+        }
+        else if (act == 2)
+        {   // restart LFOs that have RETRIG on
+            for (int k = 0; k < kNumLfo; ++k)
+                if (lfoR[k].retrig.on())
+                {
+                    gLfo[k].reset (lfoR[k].phase.get(), (uint32_t) (k + 1) * 977u);
+                    for (auto& vp : voices) if (vp->active) vp->lfo[k].reset (lfoR[k].phase.get(), vp->lfo[k].seed);
+                }
+        }
     }
 
     float gsrc[S_Count]; computeSources (nullptr, gsrc);
@@ -983,7 +1031,7 @@ void CaosmoProcessor::renderChunk (float* outL, float* outR, const float* scL, c
         P.reverbWidth = dr.rvbwidth.geti(); P.reverbHPF = dr.rvbhpf.geti(); P.reverbLPF = dr.rvblpf.geti(); P.reverbPan = dr.rvbpan.geti();
         P.compThreshold = dr.cmpthr.geti(); P.compRatio = dr.cmpratio.geti(); P.compAttack = dr.cmpatt.geti(); P.compRelease = dr.cmprel.geti();
         P.compSidechainHPF = dr.cmpsc.geti(); P.compBlend = dr.cmpblend.geti();
-        P.stutter = dr.stutter.on(); P.stutterRate = dr.sturate.geti(); P.stutterQuantized = dr.stuquant.on(); P.stutterReversed = dr.sturev.on(); P.stutterPingPong = dr.stupp.on();
+        P.stutter = dr.stutter.on() || trigStutterGate > 0.f; P.stutterRate = dr.sturate.geti(); P.stutterQuantized = dr.stuquant.on(); P.stutterReversed = dr.sturev.on(); P.stutterPingPong = dr.stupp.on();
         P.volume = dr.vol.geti();
         deluge.process (outL, outR, n, P, bpm);
     }
@@ -1032,7 +1080,7 @@ void CaosmoProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midi
     if (shapesPending.load())
     {
         const SpinLock::ScopedTryLockType tl (shapeLock);
-        if (tl.isLocked()) { for (int i = 0; i < kNumVenv; ++i) aShapes[i] = pShapes[i]; aKey = pKey; shapesPending = false; }
+        if (tl.isLocked()) { for (int i = 0; i < kNumVenv; ++i) aShapes[i] = pShapes[i]; aKey = pKey; aDist = pDist; shapesPending = false; }
     }
 
     float* L = buffer.getWritePointer (0);

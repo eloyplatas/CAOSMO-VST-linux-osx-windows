@@ -242,7 +242,7 @@ SettingsPanel::SettingsPanel (Ctx& c, std::function<void()> a)
         AlertWindow::showAsync (opts, [this] (int r) { if (r == 1) ctx.pm.resetToInit(); });
     }));
     ri->setSize (130, 24); presets.addCustom (ri);
-    auto* txt = new TextLine ([] { return String ("Caosmo 0.4  -  polyphonic chaos synthesizer  -  Eloy Platas  -  GNU GPL v3\nBuilt with JUCE. DELUGE FX: effects from the Synthstrom Audible Deluge firmware (GPL-3.0)."); }, 11.f);
+    auto* txt = new TextLine ([] { return String ("Caosmo 0.5  -  polyphonic chaos synthesizer  -  Eloy Platas  -  GNU GPL v3\nBuilt with JUCE. DELUGE FX: effects from the Synthstrom Audible Deluge firmware (GPL-3.0).\nv0.5 generators after SuperCollider UGens (Xenakis/Collins Gendy, SLUGens, MCLDUGens, ChaosUGens, BhobUGens), GPL."); }, 11.f);
     about.owned.add (txt); txt->setSize (420, 40); about.addCustom (txt);
     auto* man = chips.add (new ActionChip ("OPEN MANUAL", []
     {

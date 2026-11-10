@@ -2,7 +2,7 @@
 
 ## FILTER {#filtro}
 
-Cada capa tiene un filtro estéreo por voz con doce tipos. Los filtros de estado variable (SVF, diseño de Simper) se mantienen estables aunque modules el corte a velocidad de audio.
+Cada capa tiene un filtro estéreo por voz con catorce tipos. Los filtros de estado variable (SVF, diseño de Simper) se mantienen estables aunque modules el corte a velocidad de audio.
 
 | Tipo | Cómo funciona | Res controla |
 | --- | --- | --- |
@@ -18,10 +18,12 @@ Cada capa tiene un filtro estéreo por voz con doce tipos. Los filtros de estado
 | Comb | Filtro peine: un retardo de 1/corte con realimentación. Afinado a Cutoff, no a la nota | Realimentación (hasta 0,97) |
 | Formant | Tres bandas en las frecuencias de las vocales; Cutoff recorre A → E → I → O → U | Estrechez de los formantes |
 | Phaser | Cuatro pasatodos escalonados mezclados con la señal directa | Realimentación |
+| Friction | Masa sobre una cinta que se pega y se suelta (ver *Filtros Friction y Spring*) | Fricción seca |
+| Spring | Masa con muelle no lineal endurecido | Menos amortiguación, más no linealidad |
 
 | Parámetro | Rango (defecto) | Qué hace |
 | --- | --- | --- |
-| Filter Type | Los 12 tipos (LPF) | Tipo. |
+| Filter Type | Los 14 tipos (LPF) | Tipo. |
 | Filter Slope | 12, 24, 36, 48 dB (12) | Número de etapas en LPF, HPF, BPF, Notch y All-Pass. Los demás tipos tienen pendiente fija. |
 | Cutoff | 20 Hz – 20 kHz (20 kHz) | Corte o centro. Modulable por nota. |
 | Res | 0–100 % (10 %) | Ver tabla anterior. |
@@ -129,7 +131,7 @@ Las dos crean una ruta en la matriz, donde puedes afinar su cantidad, curva y co
 | Parámetro | Rango (defecto) | Qué hace |
 | --- | --- | --- |
 | On | On/Off (On) | Activa el LFO. |
-| Wave | Sine, Triangle, Saw Up, Saw Down, Pulse, Random S&H, Random Smooth, Perlin (Sine) | Forma. *Random S&H*: escalones aleatorios. *Random Smooth*: aleatorio interpolado. *Perlin*: ruido de gradiente de dos octavas, orgánico. |
+| Wave | Sine, Triangle, Saw Up, Saw Down, Pulse, Random S&H, Random Smooth, Perlin, Brownian, Geo Brownian, Noise Ring, Markov (Sine) | Forma. *Random S&H*: escalones aleatorios. *Random Smooth*: aleatorio interpolado. *Perlin*: ruido de gradiente de dos octavas, orgánico. Las cuatro últimas tienen memoria (ver *Ondas de LFO con memoria*). |
 | Rate | 0,01–50 Hz (1) | Velocidad libre. Modulable. |
 | Sync | Free, Host (Free) | *Host*: sincronizado con la posición del DAW (en modo Global y con el transporte en marcha, sigue la regla). |
 | Division | 8 bars … 1/32, 1/4T, 1/8T, 1/16T, 1/4D, 1/8D (1/4) | Duración de un ciclo en Host. La modulación de Rate lo multiplica por potencias de 2. |
@@ -141,6 +143,7 @@ Las dos crean una ruta en la matriz, donde puedes afinar su cantidad, curva y co
 | Rel Fade | 0–5000 ms (0) | Salida gradual al soltar. |
 | Mode | Global, Poly (Global) | Una instancia o una por nota. |
 | Retrig | On/Off (Off) | Reinicia la fase con cada nota. |
+| Dist | Las 10 distribuciones (Uniform) | Distribución de los valores de Random S&H, Random Smooth y las ondas con memoria. |
 
 ### Enlaces (LINK) {#lfo-link}
 
@@ -206,11 +209,12 @@ Moduladores que siguen la trayectoria de un atractor extraño: lisos, sin repeti
 | Chua | α 8–11 | β 12–18 | Doble espiral: alterna entre dos centros. |
 | Duffing | γ 0,2–0,6 | δ 0,1–0,4 | Oscilación forzada con saltos entre pozos; Z sigue la fuerza. |
 | Sprott B | a 0,6–1,4 | b 0,5–1,5 | Atractor simétrico y suave. |
+| Henon … ACT | | | Siete tipos nuevos de la versión 0.5: ver *Atractores nuevos*. |
 
 | Parámetro | Rango (defecto) | Qué hace |
 | --- | --- | --- |
 | On | On/Off (On) | Activa el atractor. |
-| Type | Ver tabla (1 Lorenz, 2 Rossler, 3 Chua, 4 Duffing) | Sistema. |
+| Type | Los 12 tipos (1 Lorenz, 2 Rossler, 3 Chua, 4 Duffing) | Sistema. |
 | Rate | 0,01–20 Hz (0,5) | Velocidad. Modulable. |
 | Sync / Division | Free, Host / divisiones (Free / 1 bar) | Velocidad ligada al tempo. |
 | P1 / P2 | 0–100 % (50 %) | Coeficientes (ver tabla). |
@@ -253,7 +257,8 @@ Cada ruta lleva una fuente a un destino con su propio procesado. La **x** del fi
 | MIDI | Velocity, Release Vel, Keytrack, Mod Wheel, Aftertouch, Pitch Bend, Expression (CC 11), Sustain (CC 64), CC | Velocity, Release Vel y Keytrack sí |
 | MPE | MPE Pressure, MPE Slide (CC 74), MPE Bend | Sí |
 | Macros | Macro 1–5 | No |
-| Otros | Note Random (un valor aleatorio fijo por nota) | Sí |
+| Disparos | Trig 1–4 | No |
+| Otros | Note Random (un valor aleatorio fijo por nota, con la distribución de *Note Random Dist*) | Sí |
 
 ### Destinos {#matriz-destinos}
 
@@ -262,6 +267,7 @@ Cada ruta lleva una fuente a un destino con su propio procesado. La **x** del fi
 | Capa 1–3 (por nota) | Pitch, Fine, Cutoff, Res, Level, V.Spread, Sub1 Lev, Sub2 Lev, Motor 1–6, Env Att, Env Dec, Env Sus, Env Rel |
 | Capa 1–3 (solo global) | Pan, Width, Drive, FX1–3 Send, EQ Morph |
 | Moduladores | LFO 1–8 Rate y Level, VENV 1–4 Time y Level, Attr 1–4 Rate y Level |
+| Disparos | Trig 1–4 Rate y Prob |
 | Global | LFO Loop Len, Glide |
 | Master | Master Low Gain, Mid Gain, High Gain, Sat Drive, Sat Mix, Comp Thresh, Master Width, Output Gain |
 | FX | FX A/B/C Level y P1–P5 de cada una de las 9 ranuras |
@@ -340,10 +346,10 @@ Tres buses (A, B y C) alimentados por los envíos de las capas. Cada bus tiene t
 | Parámetro | Rango (defecto) | Qué hace |
 | --- | --- | --- |
 | Bus Level | −60 – +6 dB (0) | Nivel de retorno. Modulable. |
-| Slot Type | Empty, Reverb, Delay, Freq Shift, Granular, Howl, Ring Mod | Efecto. |
+| Slot Type | Empty, Reverb, Delay, Freq Shift, Granular, Howl, Ring Mod, Diffuse, Mag Noise, Rand Comb, Noise Synth, Wave Loss, Squiz | Efecto. Los seis últimos se describen en *Efectos espectrales y de ciclo*. |
 | Slot On | On/Off (On) | Activa la ranura. |
 | P1–P5 | 0–100 % (50 %; P5 80 %) | Parámetros según el efecto. Todos modulables. |
-| Option | On/Off (Off) | Delay: Stereo / Ping-Pong. Granular: Live / Freeze. |
+| Option | On/Off (Off) | Delay: Stereo / Ping-Pong. Granular, Diffuse y Rand Comb: Live / Freeze. Noise Synth: Unstable / Stable. Wave Loss: Random / Regular. |
 
 | Efecto | P1 | P2 | P3 | P4 | P5 |
 | --- | --- | --- | --- | --- | --- |

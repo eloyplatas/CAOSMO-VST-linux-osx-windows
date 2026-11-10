@@ -13,7 +13,7 @@ import sys, pypdf
 L = sys.argv[1]
 w = pypdf.PdfWriter()
 w.append(f'cover_{L}.pdf'); w.append(f'body_{L}.pdf')
-w.add_metadata({'/Title': 'Caosmo 0.4 — ' + ('Manual de usuario' if L == 'es' else 'User Manual'), '/Author': 'Eloy Platas'})
-w.write(f'Caosmo-0.4-Manual-{L.upper()}.pdf')
+w.add_metadata({'/Title': 'Caosmo 0.5 — ' + ('Manual de usuario' if L == 'es' else 'User Manual'), '/Author': 'Eloy Platas'})
+w.write(f'Caosmo-0.5-Manual-{L.upper()}.pdf')
 PY
-ls -la Caosmo-0.4-Manual-${L^^}.pdf
+ls -la Caosmo-0.5-Manual-${L^^}.pdf

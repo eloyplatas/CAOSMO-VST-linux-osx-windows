@@ -11,6 +11,7 @@ public:
     ScrollPage() { view.setViewedComponent (&body, false); view.setScrollBarsShown (true, false); addAndMakeVisible (view); }
     void resized() override { view.setBounds (getLocalBounds()); relayout(); }
     virtual void relayout() = 0;
+    void scrollToFraction (float f) { view.setViewPosition (0, (int) (f * (float) juce::jmax (0, body.getHeight() - view.getHeight()))); }
 protected:
     struct Body : juce::Component { void paint (juce::Graphics& g) override { g.fillAll (Theme::c().bg); } };
     juce::Viewport view; Body body;
@@ -37,6 +38,7 @@ private:
     void buildMotor(); void buildEnv();
     Ctx& ctx; int lane; int engine = -1, envMode = -1;
     Panel header, drift, pitch, subs, motor, filter, env, eq, scope, out;
+    juce::Array<Knob*> motorKnobs; int motorChoice0 = -1;
     std::unique_ptr<TextLine> blurb; std::unique_ptr<EqCurve> curve; std::unique_ptr<Scope> scopeView;
     juce::OwnedArray<ActionChip> eqChips, scopeChips;
 };
@@ -60,7 +62,7 @@ private:
     void timerCallback() override;
     void shapeMenu (int i, juce::Component* target);
     Ctx& ctx; Panel loop;
-    juce::OwnedArray<Panel> lfo, venv, attr;
+    juce::OwnedArray<Panel> lfo, venv, attr, trig;
     juce::Array<Knob*> attrP1, attrP2;
     juce::OwnedArray<juce::Component> extras;
     juce::Array<VenvCanvas*> canvases; juce::Array<TextLine*> routing;
@@ -91,7 +93,7 @@ public:
     explicit MatrixPage (Ctx& c);
     void relayout() override;
 private:
-    Ctx& ctx; juce::OwnedArray<MatrixRow> rows; Panel table, keyPanel, macroPanel; std::unique_ptr<KeyEditor> keyEd;
+    Ctx& ctx; juce::OwnedArray<MatrixRow> rows; Panel table, keyPanel, macroPanel, distPanel; std::unique_ptr<KeyEditor> keyEd, distEd;
     std::unique_ptr<TextLine> macroRoutes, header;
 };
 

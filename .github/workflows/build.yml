@@ -12,7 +12,7 @@ permissions:
 
 env:
   JUCE_TAG: 8.0.4
-  VERSION: "0.4"
+  VERSION: "0.5"
 
 jobs:
   build:
@@ -89,7 +89,7 @@ jobs:
           cp -R "$A/VST3/Caosmo.vst3" "$O/"
           cp LICENSE README.md "$O/"
           cp docs/manual.html "$O/Caosmo Manual.html"
-          cp docs/Caosmo-0.4-Manual-ES.pdf docs/Caosmo-0.4-Manual-EN.pdf "$O/"
+          cp docs/Caosmo-0.5-Manual-ES.pdf docs/Caosmo-0.5-Manual-EN.pdf "$O/"
           if [ "$RUNNER_OS" = "macOS" ]; then
             cp -R "$A/Standalone/Caosmo.app" "$O/"
             ditto -c -k --keepParent "$O" "$O.zip"

@@ -212,16 +212,154 @@ struct FxHowl
     }
 };
 
+//==============================================================================
+// v0.5 spectral randomisers (SuperCollider PV_Diffuser, PV_MagNoise, PV_RandComb, PV_NoiseSynthF) on a 1024-point STFT
+struct FxSpectral
+{
+    static constexpr int N = 1024, H = 256, B = N / 2 + 1;
+    std::unique_ptr<juce::dsp::FFT> fft; std::vector<float> win;
+    struct Ch { std::vector<float> in, out, buf, mag, prevPh, dev; int pos = 0, rpos = 0; } ch[2];
+    std::vector<float> phOff, noise, mask, maskT; Rng rng; float sr = 48000.f; int hopCount = 0; float frozen[2][B] {}; bool haveFrozen = false;
+    void prepare (float s)
+    {
+        sr = s; fft = std::make_unique<juce::dsp::FFT> (10);
+        win.resize (N); for (int i = 0; i < N; ++i) win[(size_t) i] = 0.5f - 0.5f * std::cos (k2Pi * (float) i / N);
+        for (auto& c : ch) { c.in.assign (N, 0.f); c.out.assign (N, 0.f); c.buf.assign (2 * N, 0.f); c.mag.assign (B, 0.f); c.prevPh.assign (B, 0.f); c.dev.assign (B, 0.f); c.pos = c.rpos = 0; }
+        phOff.assign (B, 0.f); noise.assign (B, 0.f); mask.assign (B, 1.f); maskT.assign (B, 1.f);
+        rng.seed (0xC0FFEEu); for (int k = 0; k < B; ++k) { phOff[(size_t) k] = rng.bi(); maskT[(size_t) k] = rng.next(); }
+        hopCount = 0; haveFrozen = false;
+    }
+    void reset() { if (! fft) return; for (auto& c : ch) { std::fill (c.in.begin(), c.in.end(), 0.f); std::fill (c.out.begin(), c.out.end(), 0.f); std::fill (c.dev.begin(), c.dev.end(), 0.f); c.pos = c.rpos = 0; } haveFrozen = false; }
+    void frame (int type, const float* p, bool opt)
+    {
+        const float hopsPerSec = sr / H;
+        if (type == 7 || type == 9)
+        {   // re-randomise the phase pattern / bin selection at "Rate" (Hz), unless frozen
+            const float rate = 0.05f * std::pow (400.f, p[1]);
+            if (! opt || type == 7)
+            {
+                const float pr = std::min (1.f, rate / hopsPerSec);
+                for (int k = 0; k < B; ++k) if (rng.next() < pr) { phOff[(size_t) k] = rng.bi(); maskT[(size_t) k] = rng.next(); }
+            }
+        }
+        if (type == 8) { const float a = 1.f - std::exp (-1.f / (1.f + 60.f * p[1] * p[1])); for (int k = 0; k < B; ++k) noise[(size_t) k] += (rng.bi() - noise[(size_t) k]) * a; }
+        if (type == 9) { const float sm = 1.f - std::exp (-1.f / (1.f + 30.f * p[2] * p[2])); for (int k = 0; k < B; ++k) { const float tgt = maskT[(size_t) k] < p[0] ? 1.f : 0.f; mask[(size_t) k] += (tgt - mask[(size_t) k]) * sm; } }
+        for (int c = 0; c < 2; ++c)
+        {
+            auto& C = ch[c];
+            for (int i = 0; i < N; ++i) C.buf[(size_t) i] = C.in[(size_t) ((C.pos + i) % N)] * win[(size_t) i];
+            std::fill (C.buf.begin() + N, C.buf.end(), 0.f);
+            fft->performRealOnlyForwardTransform (C.buf.data(), true);
+            for (int k = 0; k < B; ++k)
+            {
+                float re = C.buf[(size_t) (2 * k)], im = C.buf[(size_t) (2 * k + 1)];
+                float mg = std::sqrt (re * re + im * im), ph = std::atan2 (im, re);
+                switch (type)
+                {
+                    case 7:
+                        if (opt) { if (! haveFrozen) frozen[c][k] = mg; mg = frozen[c][k]; ph = kPi * rng.bi(); }
+                        else ph += p[0] * kPi * phOff[(size_t) k];
+                        break;
+                    case 8: mg *= std::max (0.f, 1.f + 2.f * p[0] * noise[(size_t) k]); break;
+                    case 9: mg *= mask[(size_t) k]; break;
+                    case 10:
+                    {   // unstable bins: phase advance differs from the bin's centre frequency
+                        const float expect = k2Pi * (float) k * H / N;
+                        float d = ph - C.prevPh[(size_t) k] - expect; d -= k2Pi * std::round (d / k2Pi);
+                        C.prevPh[(size_t) k] = ph;
+                        const float a = 1.f / (1.f + 15.f * p[1]);
+                        C.dev[(size_t) k] += (std::fabs (d) - C.dev[(size_t) k]) * a;
+                        const bool unstable = C.dev[(size_t) k] > p[0] * kPi;
+                        if (unstable == opt) mg = 0.f;
+                    } break;
+                    default: break;
+                }
+                C.buf[(size_t) (2 * k)] = mg * std::cos (ph); C.buf[(size_t) (2 * k + 1)] = mg * std::sin (ph);
+            }
+            fft->performRealOnlyInverseTransform (C.buf.data());
+            for (int i = 0; i < N; ++i) C.out[(size_t) ((C.rpos + i) % N)] += C.buf[(size_t) i] * win[(size_t) i] * (1.f / 1.5f);
+        }
+        if (type == 7 && opt) haveFrozen = true; else if (type == 7) haveFrozen = false;
+    }
+    void process (float* L, float* R, int n, const float* p, int type, bool opt)
+    {
+        if (! fft) return;
+        const float level = p[type == 9 ? 3 : 2];
+        float* io[2] = { L, R };
+        for (int k = 0; k < n; ++k)
+        {
+            for (int c = 0; c < 2; ++c) { auto& C = ch[c]; C.in[(size_t) C.pos] = io[c][k]; }
+            for (int c = 0; c < 2; ++c) { auto& C = ch[c]; io[c][k] = C.out[(size_t) C.rpos] * level * 1.6f; C.out[(size_t) C.rpos] = 0.f; C.rpos = (C.rpos + 1) % N; }
+            for (auto& C : ch) C.pos = (C.pos + 1) % N;
+            if (++hopCount >= H) { hopCount = 0; frame (type, p, opt); }
+        }
+    }
+};
+
+// SuperCollider WaveLoss (Dan Stowell): drop whole wave cycles between positive-going zero crossings
+struct FxWaveLoss
+{
+    bool on[2] { true, true }; int pos[2] {}; float prev[2] {}; Rng rng;
+    void reset() { on[0] = on[1] = true; pos[0] = pos[1] = 0; prev[0] = prev[1] = 0; rng.seed (77u); }
+    void process (float* L, float* R, int n, const float* p, bool regular)
+    {
+        const int burst = (int) std::round (1.f + p[1] * 15.f), outof = regular ? burst * 2 : burst;
+        float* io[2] = { L, R };
+        for (int c = 0; c < 2; ++c)
+            for (int k = 0; k < n; ++k)
+            {
+                const float x = io[c][k];
+                if (prev[c] < 0.f && x >= 0.f)
+                {
+                    if (++pos[c] >= outof) pos[c] = 0;
+                    if (regular) on[c] = pos[c] >= (int) std::round (p[0] * outof);
+                    else if (pos[c] == 0) on[c] = rng.next() >= p[0];
+                }
+                io[c][k] = on[c] ? x * p[2] * 1.4f : 0.f;
+                prev[c] = x;
+            }
+    }
+};
+
+// SuperCollider Squiz (Dan Stowell): replays each chunk of wave cycles faster, "squeezing" it up in pitch
+struct FxSquiz
+{
+    std::vector<float> buf[2]; int w[2] {}, zc[2] {}; float rp[2] {}, prev[2] {};
+    void prepare (float s) { for (auto& b : buf) b.assign ((size_t) (0.1f * s), 0.f); reset(); }
+    void reset() { for (int c = 0; c < 2; ++c) { std::fill (buf[c].begin(), buf[c].end(), 0.f); w[c] = zc[c] = 0; rp[c] = prev[c] = 0; } }
+    void process (float* L, float* R, int n, const float* p)
+    {
+        const float ratio = 1.f + p[0] * 9.f; const int per = (int) std::round (1.f + p[1] * 9.f);
+        float* io[2] = { L, R };
+        for (int c = 0; c < 2; ++c)
+        {
+            auto& b = buf[c]; const int len = (int) b.size(); if (len == 0) continue;
+            for (int k = 0; k < n; ++k)
+            {
+                const int ri = (int) rp[c];
+                float o = 0.f; if (ri < len) { o = b[(size_t) ri]; rp[c] += ratio; }
+                const float x = io[c][k];
+                ++w[c];
+                if (w[c] >= len || (prev[c] < 0.f && x >= 0.f && ++zc[c] >= per)) { w[c] = 0; rp[c] = 0.f; zc[c] = 0; }
+                b[(size_t) w[c]] = x;
+                io[c][k] = o * p[2] * 1.4f;
+                prev[c] = x;
+            }
+        }
+    }
+};
+
 struct FxSlot
 {
-    int type = 0; FxReverb rv; FxDelay dl; FxFreqShift fs; FxGranular gr; FxHowl hw; float rph = 0, sr = 48000.f;
+    int type = 0; FxReverb rv; FxDelay dl; FxFreqShift fs; FxGranular gr; FxHowl hw; FxSpectral sp; FxWaveLoss wl; FxSquiz sq; float rph = 0, sr = 48000.f;
     std::atomic<float> inPk { 0 }, outPk { 0 };
-    void prepare (float s) { sr = s; rv.prepare (s); dl.prepare (s); fs.prepare (s); gr.prepare (s); hw.prepare (s); }
+    void prepare (float s) { sr = s; rv.prepare (s); dl.prepare (s); fs.prepare (s); gr.prepare (s); hw.prepare (s); sp.prepare (s); sq.prepare (s); wl.reset(); }
     void setType (int t)
     {
         if (t == type) return;
         type = t;
-        switch (t) { case 1: rv.reset(); break; case 2: dl.reset(); break; case 3: fs.reset(); break; case 4: gr.reset(); break; case 5: hw.reset(); break; default: break; }
+        switch (t) { case 1: rv.reset(); break; case 2: dl.reset(); break; case 3: fs.reset(); break; case 4: gr.reset(); break; case 5: hw.reset(); break;
+                     case 7: case 8: case 9: case 10: sp.reset(); break; case 11: wl.reset(); break; case 12: sq.reset(); break; default: break; }
     }
     void process (float* L, float* R, int n, const float* p, bool opt)
     {
@@ -238,6 +376,9 @@ struct FxSlot
                 const float inc = std::pow (4000.f, p[0]) / sr, level = p[1];
                 for (int k = 0; k < n; ++k) { rph += inc; rph -= std::floor (rph); const float m = sinT (rph) * level; L[k] *= m; R[k] *= m; }
             } break;
+            case 7: case 8: case 9: case 10: sp.process (L, R, n, p, type, opt); break;
+            case 11: wl.process (L, R, n, p, opt); break;
+            case 12: sq.process (L, R, n, p); break;
             default: break;
         }
         float op = 0; for (int k = 0; k < n; ++k) op = std::max (op, std::max (std::fabs (L[k]), std::fabs (R[k])));

@@ -26,7 +26,7 @@ The arrows on the top bar step through the filtered list.
 
 A preset stores every parameter, the routes (including those created with MIDI Learn), the four VENV shapes, the keytrack curve and the EQ snapshots. It does not store interface preferences. *Settings → OPEN PRESETS FOLDER* opens the preset folder.
 
-## The 17 categories {#presets-categorias}
+## The 20 categories {#presets-categorias}
 
 | Category | Presets | What you'll find |
 | --- | --- | --- |
@@ -47,6 +47,9 @@ A preset stores every parameter, the routes (including those created with MIDI L
 | Signal Decay | 16 | Unstable loops, frequency-shifter feedback, degradation. |
 | Warehouse | 16 | Techno textures: linked LFOs, synced *gates*, stutter. |
 | Living Machines | 16 | Sixteen interconnected modulators: self-organising systems. |
+| Stochastic | 12 | Gendy, Noise and random triggers: Xenakis, Poisson rain, human clocks, coin-flip sequences. |
+| Neurons & Maps | 12 | SuperCollider's maps played in tune and the Ecosystems models: neurons, chemical clocks, predators and prey. |
+| Bouncing Bodies | 8 | Membrane: balls bouncing on drums, bars and bells. |
 
 The full list is in the appendix.
 
@@ -116,11 +119,19 @@ For more life: Drift Pitch **Subtle** and, on L2, the same engine with Ratio **G
 3. Matrix: *VENV 1 → L1 Motor 1* (Chaos), Amount **0.7**.
 4. Hold a note: the tone splits into sub-octaves and ends in turbulence. *Aftertouch → L1 Motor 1* with Amount **0.2** lets you push it live.
 
+## Tuned rain with Poisson triggers {#tut-lluvia}
+
+1. L1 **Noise**: Type **Dust2**, Density **200**, Key BPF **0.8**, Q **18**.
+2. ENV GEN: Attack **5 ms**, Release **1 s**. FILTER: **Ladder**, Cutoff **2 kHz**, Res **40 %**.
+3. MODULATORS → TRIGGER 1: Mode **Dust**, Rate **6 Hz**, Output **S&H Decay**, Length **150 ms**, Dist **Beta**.
+4. Matrix: *Trig 1 → L1 Cutoff*, Amount **0.4**, and *Trig 1 → L1 Motor 5* (Q), Amount **0.2**.
+5. *Macro 1 → Trig1 Prob*: the macro thins or thickens the rain. To give every note its own character, *Note Random → L1 Motor 2* with Note Random Dist on **Gauss**.
+
 # Performance and CPU {#rendimiento}
 
 The cost depends on **voices × lanes × engine**. Some guidelines:
 
-- The lightest engines are Logistic/Henon, Duffing, Sprott, Chua and Circle Map. The heaviest are Lorenz Additive (with Engine HQ), Wave Grains with a high Count, Kuramoto with 12 oscillators, and Gray-Scott.
+- The lightest engines are Maps, Noise, Logistic/Henon, Duffing, Sprott, Chua and Circle Map. The heaviest are Lorenz Additive (with Engine HQ), Wave Grains with a high Count, Kuramoto with 12 oscillators, and Gray-Scott.
 - **Sub 1** doubles the cost of that lane's engine; **Sub 2** is free.
 - **Poly** modulators cost one instance per voice.
 - Lower **Voices** to what you need: 8 is usually enough for pads, 1–4 for basses and leads.
@@ -147,7 +158,7 @@ The cost depends on **voices × lanes × engine**. Some guidelines:
 
 # How it was made {#comosehizo}
 
-Caosmo was built over four versions, from a playable core to a complete instrument with effects and binaries for three systems.
+Caosmo was built over five versions, from a playable core to a complete instrument with effects and binaries for three systems.
 
 ## Research {#hizo-investigacion}
 
@@ -156,7 +167,7 @@ The starting point was Fragua's public documentation: its three-lane architectur
 ## Code architecture {#hizo-arquitectura}
 
 - **Language and framework**: C++ on JUCE 8.0.4, built with CMake.
-- **Parameters**: a single state tree with more than a thousand automatable parameters. The parameters of all twelve engines always exist on every lane, which is why switching engines loses nothing.
+- **Parameters**: a single state tree with more than a thousand automatable parameters. The parameters of all seventeen engines always exist on every lane, which is why switching engines loses nothing.
 - **Engines**: each system is integrated per sample, most with fourth-order Runge-Kutta. Pitched engines scale their integration step with the note frequency, capped to stay stable in the treble; some (Sprott, Chua) were calibrated by measuring their real period with the test bench so the note lands where it should. Mackey-Glass includes a period detector that corrects the delay in real time.
 - **Numerical safety**: every engine checks its state on every sample and restarts if a variable blows up.
 - **Modulation**: computed in short blocks. Per-note sources live inside each voice; global ones are shared. On every block the matrix decides which routes apply to each destination.
@@ -170,7 +181,7 @@ Audio is converted to the Deluge's 32-bit fixed point, processed in 64-sample bl
 
 ## Presets {#hizo-presets}
 
-The 256 presets are written as text: each line sets the parameters that differ from the initial patch. A generator loads them into the real engine, renders them, measures their RMS level and true peak, levels them, checks their evolution over time and packs them into the plugin. The 128 experimental presets are produced by a script that combines per-category design rules (which engines, which interconnected modulators, which macros).
+The 288 presets are written as text: each line sets the parameters that differ from the initial patch. A generator loads them into the real engine, renders them, measures their RMS level and true peak, levels them, checks their evolution over time and packs them into the plugin. The 128 experimental presets and the 32 from version 0.5 are produced by scripts that combines per-category design rules (which engines, which interconnected modulators, which macros).
 
 ## Testing {#hizo-pruebas}
 
@@ -215,6 +226,7 @@ Every parameter can be automated. In the DAW they appear with a prefix showing w
 | LFO1–8 | LFO3 Rate | LFOs |
 | VENV1–4 | VENV1 Time | Drawable envelopes |
 | Attr1–4 | Attr2 P1 | Attractors |
+| Trig1–4 | Trig3 Rate | Random triggers |
 | Slot1–24 | Slot5 Amount | Matrix routes |
 | Master / Comp / Sat / Limiter | Comp Thresh | Master chain |
 | FX A/B/C | FX B Slot2 P1 | Effect buses |
@@ -231,6 +243,7 @@ To automate the sound without touching presets, use the **macros**: their names 
 | 0.2 | Vactrol and VENV, attractors, LFO links and Loop Lock, EQ snapshots, master chain, FX buses, tagged browser, 128 presets. |
 | 0.3 | 128 experimental, evolving presets. |
 | 0.4 | DELUGE FX rack, GPL v3 licence, Windows and macOS, constant latency, complete manual. |
+| 0.5 | SuperCollider generators: Gendy, Maps, Ecosystems, Noise and Membrane engines; random triggers; distributions; LFO waves with memory; Friction and Spring filters; seven attractors; six spectral and cycle effects; 32 presets. |
 
 ## Licence {#ap-licencia}
 
@@ -247,4 +260,5 @@ Caosmo is free software: you may use, study, modify and redistribute it under th
 | Freeverb | Jezar at Dreampoint, public domain. |
 | Framework | JUCE 8.0.4, AGPLv3. |
 | Validation | pluginval by Tracktion. |
-| Dynamical systems | Kuramoto (1975), Duffing (1918), Sprott (1997), Lorenz (1963), Rössler (1976), May (1976), Hénon (1976), Chua (1983), Gray and Scott (1983), Mackey and Glass (1977), Arnold (1961). |
+| 0.5 generators | Reimplemented from SuperCollider (GPL v2 or later): Gendy1 (Nick Collins, after Iannis Xenakis), the core ChaosGen and PV_ UGens, SLUGens (Nick Collins), MCLDUGens (Dan Stowell: Friction, TBall, WaveLoss, Squiz), ChaosUGens (Till Bovermann) and BhobUGens (GaussTrig, LorenzTrig). |
+| Dynamical systems | Kuramoto (1975), Duffing (1918), Sprott (1997), Lorenz (1963), Rössler (1976), May (1976), Hénon (1976), Chua (1983), Gray and Scott (1983), Mackey and Glass (1977), Arnold (1961), Xenakis (1991), Pickover (1994), Chirikov (1979), Devaney (1984), FitzHugh (1961) and Nagumo (1962), Prigogine and Lefever (1968), Field and Noyes (1974), Lotka (1925) and Volterra (1926), Arneodo, Coullet and Tresser (1981), Ludwig, Jones and Holling (1978). |

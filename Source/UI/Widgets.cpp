@@ -27,9 +27,10 @@ Theme& Theme::c() { static Theme t = makeTheme (0); return t; }
 void Theme::set (int which) { c() = makeTheme (which); }
 Colour Theme::engine (int e)
 {
-    static const uint32 cols[13] = { 0xff5a6070, 0xff3fd0c9, 0xffe0875a, 0xff6fb7ff, 0xff9b8cff, 0xffc9b458, 0xffff6f91,
-                                     0xff7ad36b, 0xffffc46b, 0xff4fe0a8, 0xffd59a6a, 0xffff8a4c, 0xffb0c4d8 };
-    return Colour (cols[jlimit (0, 12, e)]);
+    static const uint32 cols[18] = { 0xff5a6070, 0xff3fd0c9, 0xffe0875a, 0xff6fb7ff, 0xff9b8cff, 0xffc9b458, 0xffff6f91,
+                                     0xff7ad36b, 0xffffc46b, 0xff4fe0a8, 0xffd59a6a, 0xffff8a4c, 0xffb0c4d8,
+                                     0xffe86bd3, 0xff8fd14f, 0xff5fd7ff, 0xffc0c0c0, 0xfff2a65a };
+    return Colour (cols[jlimit (0, 17, e)]);
 }
 
 static std::unique_ptr<PropertiesFile> openProps()

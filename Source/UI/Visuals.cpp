@@ -353,11 +353,13 @@ void VenvCanvas::commit()
 }
 
 //==============================================================================
-KeyEditor::KeyEditor (Ctx& c) : ctx (c) { startTimerHz (10); timerCallback(); }
+KeyEditor::KeyEditor (Ctx& c, bool distribution) : ctx (c), dist (distribution) { startTimerHz (10); timerCallback(); }
+ValueTree KeyEditor::tree() { return dist ? ctx.proc.distTree() : ctx.proc.keyTree(); }
+void KeyEditor::store() { ctx.proc.undo.beginNewTransaction(); if (dist) ctx.proc.setDistCurve (curve); else ctx.proc.setKeyCurve (curve); loaded = tree().getProperty ("pts").toString(); }
 void KeyEditor::timerCallback()
 {
     if (drag >= 0) return;
-    const auto s = ctx.proc.keyTree().getProperty ("pts").toString();
+    const auto s = tree().getProperty ("pts").toString();
     if (s != loaded) { loaded = s; curve = KeyCurve::fromString (s); repaint(); }
 }
 Rectangle<float> KeyEditor::area() const { return getLocalBounds().toFloat().reduced (6.f, 4.f).withTrimmedBottom (14.f); }
@@ -367,9 +369,17 @@ void KeyEditor::paint (Graphics& g)
     g.setColour (t.bg); g.fillRoundedRectangle (getLocalBounds().toFloat(), 4.f);
     auto a = area();
     g.setColour (t.line); g.drawHorizontalLine ((int) a.getCentreY(), a.getX(), a.getRight());
-    // piano strip
+    // piano strip (keytrack) or a filled density (distribution)
     auto kb = getLocalBounds().toFloat().reduced (6.f, 2.f).removeFromBottom (12.f);
-    for (int n = 0; n < 128; ++n)
+    if (dist)
+    {
+        Path fill; fill.startNewSubPath (a.getX(), a.getBottom());
+        for (int i = 0; i < curve.n; ++i) fill.lineTo (a.getX() + curve.x[i] * a.getWidth(), a.getCentreY() - curve.y[i] * a.getHeight() * 0.5f);
+        fill.lineTo (a.getRight(), a.getBottom()); fill.closeSubPath();
+        g.setColour (t.accent.withAlpha (0.18f)); g.fillPath (fill);
+        g.setColour (t.dim); g.setFont (FontOptions (9.f)); g.drawText ("low values", kb, Justification::centredLeft); g.drawText ("high values", kb, Justification::centredRight);
+    }
+    else for (int n = 0; n < 128; ++n)
     {
         const int pc = n % 12; const bool black = pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10;
         g.setColour (black ? t.bg : t.dim.withAlpha (0.6f));
@@ -396,7 +406,7 @@ void KeyEditor::mouseDown (const MouseEvent& e)
     if (e.mods.isPopupMenu() && drag > 0 && drag < curve.n - 1)
     {
         for (int i = drag; i < curve.n - 1; ++i) { curve.x[i] = curve.x[i + 1]; curve.y[i] = curve.y[i + 1]; }
-        --curve.n; drag = -1; ctx.proc.undo.beginNewTransaction(); ctx.proc.setKeyCurve (curve); loaded = ctx.proc.keyTree().getProperty ("pts").toString();
+        --curve.n; drag = -1; store();
     }
 }
 void KeyEditor::mouseDrag (const MouseEvent& e)
@@ -409,7 +419,7 @@ void KeyEditor::mouseDrag (const MouseEvent& e)
 }
 void KeyEditor::mouseUp (const MouseEvent&)
 {
-    if (drag >= 0) { ctx.proc.undo.beginNewTransaction(); ctx.proc.setKeyCurve (curve); loaded = ctx.proc.keyTree().getProperty ("pts").toString(); }
+    if (drag >= 0) store();
     drag = -1;
 }
 void KeyEditor::mouseDoubleClick (const MouseEvent& e)
@@ -420,7 +430,7 @@ void KeyEditor::mouseDoubleClick (const MouseEvent& e)
     int at = 1; while (at < curve.n && curve.x[at] < x) ++at;
     for (int i = curve.n; i > at; --i) { curve.x[i] = curve.x[i - 1]; curve.y[i] = curve.y[i - 1]; }
     curve.x[at] = x; curve.y[at] = y; ++curve.n;
-    ctx.proc.undo.beginNewTransaction(); ctx.proc.setKeyCurve (curve); loaded = ctx.proc.keyTree().getProperty ("pts").toString(); repaint();
+    store(); repaint();
 }
 
 //==============================================================================

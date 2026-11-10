@@ -100,6 +100,94 @@ int main (int argc, char** argv)
                 if (mode == "wav" && note == 57) writeWav (outDir.getChildFile (String (e).paddedLeft ('0', 2) + "_" + specs[(size_t) e].key + ".wav"), L, R);
             }
     }
+    if (mode == "v05")
+    {   // every choice of the v0.5 engines, a few notes each
+        struct Case { int e; const char* key; int n; };
+        for (auto cs : { Case { 3, "", 0 }, Case { 5, "clock", 4 }, Case { 13, "adist", 7 }, Case { 13, "interp", 2 }, Case { 14, "map", 10 }, Case { 14, "interp", 3 },
+                         Case { 15, "model", 6 }, Case { 15, "out", 4 }, Case { 16, "type", 8 }, Case { 16, "clock", 3 }, Case { 17, "body", 4 } })
+        {
+            if (cs.n == 0) continue;
+            for (int v = 0; v < cs.n; ++v)
+                for (int note : { 36, 57, 84 })
+                {
+                    auto p = fresh(); setP (*p, laneId (0, "engine"), (float) cs.e);
+                    setP (*p, engId (0, cs.e, cs.key), (float) v);
+                    auto r = render (*p, { note }, 1.4f, 0.4f);
+                    const float expect = 440.f * std::exp2 ((note - 69) / 12.f);
+                    std::printf ("%-12s %-6s=%d n%-3d rms %6.3f peak %6.3f dc %6.3f pitch %8.1f clar %4.2f nans %d (expect %.1f)\n", specs[(size_t) cs.e].name, cs.key, v, note,
+                                 r.rms, r.peak, r.dc, r.pitch, r.clarity, r.nans, expect);
+                }
+        }
+    }
+    if (mode == "v05fx")
+    {   // new bus effects: level, NaNs; spectral with neutral settings should pass the signal at about unity
+        for (int t = 0; t < kNumFxTypes; ++t)
+        {
+            if (t != 0 && t < 7) continue;
+            for (float a : { 0.f, 0.5f, 1.f })
+            {
+                auto p = fresh(); setP (*p, laneId (0, "engine"), 8.f); setP (*p, laneId (0, "fx1"), 0.f);
+                setP (*p, fxId (0, 0, "type"), (float) t);
+                for (int k = 0; k < kFxParams; ++k) setP (*p, fxId (0, 0, ("p" + String (k + 1)).toRawUTF8()), k == 0 ? a : 0.5f);
+                if (t == 7 || t == 8) setP (*p, fxId (0, 0, "p3"), 0.625f);
+                if (t == 9) { setP (*p, fxId (0, 0, "p4"), 0.625f); }
+                if (t == 10) setP (*p, fxId (0, 0, "p3"), 0.625f);
+                if (t >= 11) setP (*p, fxId (0, 0, "p3"), 0.714f);
+                auto r = render (*p, { 57 }, 1.5f, 0.3f);
+                std::printf ("fx %-11s p1=%.1f rms %6.3f peak %6.3f nans %d   (dry+return; Empty = dry only)\n", kFxTypeNames[t], a, r.rms, r.peak, r.nans);
+            }
+        }
+    }
+    if (mode == "spgain")
+    {
+        for (int t = 7; t <= 10; ++t)
+        {
+            FxSpectral sp; sp.prepare (48000.f);
+            float p[5] = { 0.f, 0.f, 0.625f, 0.625f, 0.5f }; if (t == 9) { p[0] = 1.f; p[2] = 0.f; } if (t == 10) { p[0] = 0.f; }
+            std::vector<float> L (48000), R (48000);
+            for (int i = 0; i < 48000; ++i) L[(size_t) i] = R[(size_t) i] = 0.5f * std::sin (k2Pi * 440.f * i / 48000.f);
+            for (int pos = 0; pos < 48000; pos += 64) sp.process (L.data() + pos, R.data() + pos, 64, p, t, false);
+            float pk = 0; for (int i = 24000; i < 48000; ++i) pk = std::max (pk, std::fabs (L[(size_t) i]));
+            std::printf ("spectral type %d gain %.3f\n", t, pk / 0.5f);
+        }
+    }
+    if (mode == "v05mod")
+    {   // triggers, new LFO waves and distributions, new attractor types: values stay in range and Loop Lock repeats
+        auto p = fresh(); setP (*p, laneId (0, "engine"), 12.f);
+        for (int i = 0; i < kNumTrig; ++i) { setP (*p, trigId (i, "mode"), (float) i); setP (*p, trigId (i, "rate"), 8.f); setP (*p, trigId (i, "shape"), (float) (i % 4)); }
+        setP (*p, trigId (0, "action"), 1.f); setP (*p, trigId (1, "action"), 2.f); setP (*p, trigId (2, "action"), 3.f); setP (*p, "dl_on", 1.f);
+        for (int i = 0; i < 4; ++i) { setP (*p, lfoId (i, "wave"), 8.f + i); setP (*p, lfoId (i, "rate"), 6.f); setP (*p, lfoId (i, "dist"), (float) (i * 3)); }
+        for (int i = 4; i < 8; ++i) { setP (*p, lfoId (i, "wave"), 5.f); setP (*p, lfoId (i, "dist"), (float) (i + 2)); setP (*p, lfoId (i, "rate"), 20.f); }
+        for (int i = 0; i < kNumAttr; ++i) { setP (*p, attrId (i, "type"), (float) (5 + i)); setP (*p, attrId (i, "rate"), 3.f); }
+        setP (*p, slotId (0, "src"), (float) S_Trig1); setP (*p, slotId (0, "dst"), (float) (kDestLaneBase + LD_Cut)); setP (*p, slotId (0, "amt"), -0.4f);
+        setP (*p, slotId (1, "src"), (float) S_Lfo1 + 2); setP (*p, slotId (1, "dst"), (float) (kDestLaneBase + LD_M2)); setP (*p, slotId (1, "amt"), 0.3f);
+        setP (*p, slotId (2, "src"), (float) S_Attr1 + 1); setP (*p, slotId (2, "dst"), (float) kDestTrigRate); setP (*p, slotId (2, "amt"), 0.3f);
+        auto r = render (*p, { 48, 55, 60 }, 4.f, 1.f);
+        std::printf ("mod run: rms %.3f peak %.3f nans %d\n", r.rms, r.peak, r.nans);
+        float mn[S_Count], mx[S_Count]; for (int s = 0; s < S_Count; ++s) { mn[s] = 1e9f; mx[s] = -1e9f; }
+        AudioBuffer<float> buf (2, 256); MidiBuffer mb; mb.addEvent (MidiMessage::noteOn (1, 60, (uint8) 100), 0);
+        for (int b = 0; b < 600; ++b) { p->processBlock (buf, mb); mb.clear(); for (int s = 1; s < S_Count; ++s) { const float v = p->ui.srcLive[s].load(); mn[s] = std::min (mn[s], v); mx[s] = std::max (mx[s], v); } }
+        const auto sn = sourceNames();
+        for (int s = 1; s < S_Count; ++s) if (s < S_Env1 || s >= S_Trig1) std::printf ("  %-12s %7.3f .. %7.3f\n", sn[s].toRawUTF8(), mn[s], mx[s]);
+        // distribution histograms
+        DistTable dt = DistTable::fromCurve (KeyCurve::fromString ("0,-1;0.25,0.2;0.5,1;0.75,0.2;1,-1"));
+        for (int d = 0; d < kNumDists; ++d)
+        {
+            int h[10] = {}; Rng rg; rg.seed (5u + (uint32_t) d);
+            for (int i = 0; i < 20000; ++i) { const float v = distSample (d, rg.next(), rg.next(), &dt); h[std::min (9, (int) (v * 10.f))]++; }
+            std::printf ("  dist %-12s", kDistNames[d]); for (int i : h) std::printf (" %4d", i / 20); std::printf ("\n");
+        }
+        // Loop Lock repeat check for stateful waves
+        for (int w = 8; w < 12; ++w)
+        {
+            LfoState st; st.reset (0.f, 99u); std::vector<float> a, b;
+            for (int i = 0; i < 40; ++i) { st.total = i * 0.5; a.push_back (st.statefulValue (w, 0.5f, 0, nullptr)); }
+            for (int i = 0; i < 40; ++i) { st.total = i * 0.5; b.push_back (st.statefulValue (w, 0.5f, 0, nullptr)); }
+            float diff = 0; for (int i = 0; i < 40; ++i) diff = std::max (diff, std::fabs (a[(size_t) i] - b[(size_t) i]));
+            float mnv = 9, mxv = -9; for (float v : a) { mnv = std::min (mnv, v); mxv = std::max (mxv, v); }
+            std::printf ("  wave %d replay diff %.6f range %.2f..%.2f\n", w, diff, mnv, mxv);
+        }
+    }
     if (mode == "sweep")
     {
         const int only = argc > 2 ? String (argv[2]).getIntValue() : 0;
@@ -236,6 +324,38 @@ int main (int argc, char** argv)
         ce->testOverlay (1); snap ("save"); ce->testOverlay (-1);
         ce->testOverlay (2); snap ("settings"); ce->testOverlay (-1);
         std::printf ("ui snapshots written\n");
+    }
+    if (mode == "ui05")
+    {
+        auto p = fresh();
+        setP (*p, laneId (0, "engine"), 13.f); setP (*p, laneId (1, "engine"), 14.f); setP (*p, laneId (2, "engine"), 15.f);
+        setP (*p, engId (1, 14, "map"), 6.f); setP (*p, engId (2, 15, "model"), 1.f);
+        setP (*p, fxId (0, 1, "type"), 7.f); setP (*p, fxId (1, 1, "type"), 10.f); setP (*p, fxId (2, 0, "type"), 12.f);
+        for (int i = 0; i < 4; ++i) setP (*p, attrId (i, "type"), (float) (5 + i * 2));
+        setP (*p, laneId (0, "fx1"), -6.f); setP (*p, laneId (1, "fx2"), -6.f);
+        render (*p, { 48, 55, 60, 64 }, 1.0f, 0.0f);
+        std::unique_ptr<AudioProcessorEditor> ed (p->createEditor());
+        auto* ce = dynamic_cast<CaosmoEditor*> (ed.get());
+        auto snap = [&] (const String& n)
+        {
+            for (int i = 0; i < 3; ++i) { MessageManager::getInstance()->runDispatchLoopUntil (120); }
+            auto img = ed->createComponentSnapshot (ed->getLocalBounds());
+            PNGImageFormat png; auto f = outDir.getChildFile ("ui05_" + n + ".png"); f.deleteFile();
+            FileOutputStream os (f); png.writeImageToStream (img, os);
+        };
+        std::function<ScrollPage* (Component*)> findPage = [&] (Component* c) -> ScrollPage* {
+            if (auto* m = dynamic_cast<ScrollPage*> (c)) if (m->isVisible()) return m;
+            for (auto* ch : c->getChildren()) if (auto* m = findPage (ch)) return m;
+            return nullptr; };
+        for (int pg = 0; pg < 4; ++pg)
+        {
+            ce->showPage (pg);
+            if (pg == 3) { std::function<MasterPage* (Component*)> fm = [&] (Component* c) -> MasterPage* { if (auto* m = dynamic_cast<MasterPage*> (c)) return m; for (auto* ch : c->getChildren()) if (auto* m = fm (ch)) return m; return nullptr; };
+                           if (auto* mp = fm (ed.get())) mp->setView (1); }
+            snap (String (pg) + "a");
+            if (auto* sp = findPage (ed.get())) { sp->scrollToFraction (1.f); snap (String (pg) + "b"); sp->scrollToFraction (0.5f); snap (String (pg) + "c"); }
+        }
+        std::printf ("ui05 snapshots written\n");
     }
     if (mode == "features2")
     {

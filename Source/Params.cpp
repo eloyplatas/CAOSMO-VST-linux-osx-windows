@@ -36,8 +36,9 @@ const std::vector<EngineSpec>& engineSpecs()
           "Two strange attractors mixed. Pitch-inert: use Sub 2 for a pitch." },
         { "map", "Logistic/Henon", true, -1,
           { { "morph", "Morph", 0.f, 1.f, 0.5f }, { "r", "R", 3.6f, 3.95f, 3.9f }, { "a", "A", 0.8f, 1.4f, 1.4f }, { "b", "B", 0.f, 0.4f, 0.3f },
-            { "bright", "Smooth", 0.f, 1.f, 0.f }, { "drift", "Drift", 0.f, 1.f, 0.f } }, {},
-          "Discrete chaotic maps iterated per sample: granular, grainy, impulsive. Pitch-inert." },
+            { "bright", "Smooth", 0.f, 1.f, 0.f }, { "drift", "Drift", 0.f, 1.f, 0.f }, { "iter", "Iter Oct", -2.f, 7.f, 3.f } },
+          { { "clock", "Clock", { "Per Sample", "Note Step", "Note Linear", "Note Cubic" } } },
+          "Discrete chaotic maps. Per Sample: grainy noise. Note clocks iterate in step with the note and make it pitched." },
         { "chua", "Chua", false, -1,
           { { "alpha", "Alpha", 8.5f, 11.f, 10.f }, { "beta", "Beta", 13.5f, 18.5f, 15.f }, { "omega", "Omega", 0.5f, 8.f, 3.5f, 2.5f } }, {},
           "The double-scroll circuit: bifurcates into crunchy, restless tones." },
@@ -72,6 +73,38 @@ const std::vector<EngineSpec>& engineSpecs()
             { "tongue", "Tongue", 0.f, 1.f, 0.2f }, { "shape", "Shape", 0.f, 1.f, 0.5f }, { "slave", "Slave", 0.5f, 2.f, 1.f, 1.f }, { "couple", "Couple", 0.f, 1.f, 0.3f } },
           { { "note", "Note", { "Retrig", "Free" } } },
           "Circle map locking onto musical ratios like meshing gears; Ratio 0.5 is the note." },
+        // ---- v0.5: generators studied in the SuperCollider documentation ----
+        { "gen", "Gendy", false, -1,
+          { { "ascale", "Amp Step", 0.f, 1.f, 0.3f }, { "dscale", "Dur Step", 0.f, 1.f, 0.15f }, { "apar", "Amp Shape", 0.0001f, 1.f, 0.5f },
+            { "dpar", "Dur Shape", 0.0001f, 1.f, 0.5f }, { "spread", "Spread", 0.f, 24.f, 3.f, 6.f }, { "points", "Points", 2.f, 32.f, 12.f, 0.f, true },
+            { "stereo", "Stereo", 0.f, 1.f, 0.3f } },
+          { { "adist", "Amp Dist", { "Linear", "Cauchy", "Logist", "Hyperbcos", "Arcsine", "Expon", "Sinus" }, 1 },
+            { "ddist", "Dur Dist", { "Linear", "Cauchy", "Logist", "Hyperbcos", "Arcsine", "Expon", "Sinus" }, 1 },
+            { "interp", "Interp", { "Linear", "Cubic" } } },
+          "Xenakis' dynamic stochastic synthesis (GENDYN): a polygon wave whose points random-walk every cycle." },
+        { "mz", "Maps", false, 2,
+          { { "oct", "Iter Oct", -2.f, 7.f, 3.f }, { "a", "A", 0.f, 1.f, 0.5f }, { "b", "B", 0.f, 1.f, 0.5f }, { "c", "C", 0.f, 1.f, 0.5f },
+            { "d", "D", 0.f, 1.f, 0.5f }, { "smooth", "Smooth", 0.f, 1.f, 0.f } },
+          { { "map", "Map", { "Latoocarfian", "Standard", "Gingerbread", "Cusp", "Quad", "LinCong", "FBSine", "Crackle", "Logistic", "Henon" } },
+            { "interp", "Interp", { "Step", "Linear", "Cubic" }, 2 }, { "note", "Note", { "Retrig", "Free" } } },
+          "Ten chaotic maps from SuperCollider, iterated in step with the note: tones, buzz and crackle." },
+        { "eco", "Ecosystems", false, 2,
+          { { "p1", "P1", 0.f, 1.f, 0.5f }, { "p2", "P2", 0.f, 1.f, 0.5f }, { "force", "Force", 0.f, 1.f, 0.f }, { "speed", "Speed", 0.25f, 4.f, 1.f, 1.f },
+            { "kick", "Kick", 0.f, 1.f, 0.f }, { "drive", "Drive", 0.f, 1.f, 0.3f } },
+          { { "model", "Model", { "FitzHugh-Nagumo", "Brusselator", "Oregonator", "Lotka-Volterra", "Arneodo-Coullet-Tresser", "Spruce Budworm" } },
+            { "out", "Out", { "X", "Y", "Z", "Blend" } }, { "note", "Note", { "Retrig", "Free" } } },
+          "Neurons, chemical clocks and predator-prey ecologies, tuned to the note. Force and Kick push them into chaos." },
+        { "nz", "Noise", true, -1,
+          { { "tone", "Tone", -1.f, 1.f, 0.f }, { "dens", "Density", 1.f, 20000.f, 300.f, 300.f }, { "chaos", "Chaos", 1.f, 2.05f, 1.9f },
+            { "stereo", "Stereo", 0.f, 1.f, 0.6f }, { "bpf", "Key BPF", 0.f, 1.f, 0.f }, { "q", "Q", 0.5f, 30.f, 6.f, 6.f } },
+          { { "type", "Type", { "White", "Pink", "Brown", "Gray", "Clip", "Crackle", "Dust", "Dust2" } }, { "clock", "Clock", { "Free", "Note Step", "Note Smooth" } } },
+          "Plain and chaotic noise: white, pink, brown, gray, clip, Crackle and Dust impulses. Key BPF gives it a pitch." },
+        { "mb", "Membrane", false, -1,
+          { { "gravity", "Gravity", 0.5f, 40.f, 6.f, 6.f }, { "bloss", "Bounce Loss", 0.f, 1.f, 0.35f }, { "height", "Height", 0.f, 1.f, 0.5f },
+            { "scatter", "Scatter", 0.f, 1.f, 0.1f }, { "decay", "Decay", 0.02f, 8.f, 0.8f, 0.8f }, { "strike", "Strike", 0.f, 1.f, 0.5f },
+            { "tension", "Tension", 0.f, 1.f, 0.f }, { "modes", "Modes", 2.f, 16.f, 10.f, 0.f, true } },
+          { { "body", "Body", { "Circle Membrane", "Square Membrane", "Free Bar", "Bell" } } },
+          "A bouncing ball striking a membrane, bar or bell whose modes are tuned to the note." },
     };
     return specs;
 }
@@ -79,14 +112,17 @@ const std::vector<EngineSpec>& engineSpecs()
 StringArray engineNames() { StringArray s; for (auto& e : engineSpecs()) s.add (e.name); return s; }
 
 //==============================================================================
-const char* const kFxTypeNames[] = { "Empty", "Reverb", "Delay", "Freq Shift", "Granular", "Howl", "Ring Mod" };
-int fxParamCount (int t) { static const int n[] = { 0, 5, 5, 3, 5, 5, 2 }; return n[jlimit (0, 6, t)]; }
+const char* const kFxTypeNames[] = { "Empty", "Reverb", "Delay", "Freq Shift", "Granular", "Howl", "Ring Mod",
+                                     "Diffuse", "Mag Noise", "Rand Comb", "Noise Synth", "Wave Loss", "Squiz" };
+int fxParamCount (int t) { static const int n[] = { 0, 5, 5, 3, 5, 5, 2, 3, 3, 4, 3, 3, 3 }; return n[jlimit (0, kNumFxTypes - 1, t)]; }
 const char* fxParamName (int t, int k)
 {
-    static const char* n[7][5] = { { "", "", "", "", "" }, { "Size", "Damp", "Pre", "Mod", "Level" }, { "Time", "FB", "Damp", "Wobble", "Level" },
+    static const char* n[kNumFxTypes][5] = { { "", "", "", "", "" }, { "Size", "Damp", "Pre", "Mod", "Level" }, { "Time", "FB", "Damp", "Wobble", "Level" },
                                    { "Shift", "FB", "Level", "", "" }, { "Size", "Density", "Scatter", "Pitch", "Level" },
-                                   { "Freq", "FB", "Damp", "Drive", "Level" }, { "Freq", "Level", "", "", "" } };
-    return n[jlimit (0, 6, t)][jlimit (0, 4, k)];
+                                   { "Freq", "FB", "Damp", "Drive", "Level" }, { "Freq", "Level", "", "", "" },
+                                   { "Amount", "Rate", "Level", "", "" }, { "Amount", "Smooth", "Level", "", "" }, { "Density", "Rate", "Smear", "Level", "" },
+                                   { "Thresh", "Memory", "Level", "", "" }, { "Drop", "Burst", "Level", "", "" }, { "Ratio", "Cycles", "Level", "", "" } };
+    return n[jlimit (0, kNumFxTypes - 1, t)][jlimit (0, 4, k)];
 }
 float fxParamValue (int t, int k, float v)
 {
@@ -98,6 +134,10 @@ float fxParamValue (int t, int k, float v)
         case 4: return k == 0 ? 10.f * std::pow (50.f, v) : (k == 1 ? std::pow (40.f, v) : (k == 3 ? std::round (v * 48.f - 24.f) : v));
         case 5: return k == 0 ? 40.f * std::pow (100.f, v) : (k == 1 ? v * 1.2f : v);
         case 6: return k == 0 ? std::pow (4000.f, v) : v;
+        case 7: case 9: return k == 1 ? 0.05f * std::pow (400.f, v) : v;        // re-randomise rate 0.05-20 Hz
+        case 10: return k == 1 ? std::round (1.f + v * 15.f) : v;               // frames of memory
+        case 11: return k == 1 ? std::round (1.f + v * 15.f) : v;               // burst length in cycles
+        case 12: return k == 0 ? 1.f + v * 9.f : (k == 1 ? std::round (1.f + v * 9.f) : v);
         default: return v;
     }
 }
@@ -114,17 +154,50 @@ String fxParamText (int t, int k, float v)
         case 4: return k == 0 ? String (roundToInt (x)) + " ms" : (k == 1 ? String (x, 1) + "/s" : (k == 3 ? String ((int) x) + " st" : pct (x)));
         case 5: return k == 0 ? hz (x) : (k == 1 ? pct (v) : pct (x));
         case 6: return k == 0 ? hz (x) : pct (x);
+        case 7: case 9: return k == 1 ? (x < 0.995f ? String (x, 2) + " Hz" : String (x, 1) + " Hz") : pct (x);
+        case 10: return k == 1 ? String ((int) x) + " fr" : pct (x);
+        case 11: return k == 1 ? String ((int) x) + " cyc" : pct (x);
+        case 12: return k == 0 ? String (x, 2) + "x" : (k == 1 ? String ((int) x) + " zc" : pct (x));
         default: return pct (v);
     }
 }
-const char* fxOptName (int t) { return t == 2 ? "Mode" : (t == 4 ? "Capture" : nullptr); }
-const char* fxOptLabel (int t, bool on) { return t == 2 ? (on ? "Ping-Pong" : "Stereo") : (on ? "Freeze" : "Live"); }
+const char* fxOptName (int t) { return t == 2 ? "Mode" : (t == 4 || t == 7 || t == 9 ? "Capture" : (t == 10 ? "Keep" : (t == 11 ? "Pattern" : nullptr))); }
+const char* fxOptLabel (int t, bool on)
+{
+    if (t == 2) return on ? "Ping-Pong" : "Stereo";
+    if (t == 10) return on ? "Stable" : "Unstable";
+    if (t == 11) return on ? "Regular" : "Random";
+    return on ? "Freeze" : "Live";
+}
 
-const char* const kAttrTypeNames[] = { "Lorenz", "Rossler", "Chua", "Duffing", "Sprott B" };
+const char* const kAttrTypeNames[] = { "Lorenz", "Rossler", "Chua", "Duffing", "Sprott B",
+                                       "Henon", "Latoocarfian", "Standard", "Gingerbread", "FitzHugh", "Lotka-Volterra", "ACT" };
 const char* attrPName (int t, int k)
 {
-    static const char* n[5][2] = { { "Sigma", "Rho" }, { "A", "C" }, { "Alpha", "Beta" }, { "Gamma", "Delta" }, { "A", "B" } };
-    return n[jlimit (0, 4, t)][k & 1];
+    static const char* n[kNumAttrTypes][2] = { { "Sigma", "Rho" }, { "A", "C" }, { "Alpha", "Beta" }, { "Gamma", "Delta" }, { "A", "B" },
+                                               { "A", "B" }, { "A", "B" }, { "K", "Init" }, { "X0", "Y0" }, { "Current", "Eps" }, { "Prey", "Pred" }, { "Alpha", "Immig" } };
+    return n[jlimit (0, kNumAttrTypes - 1, t)][k & 1];
+}
+
+const char* const kDistNames[] = { "Uniform", "Gauss", "Low", "High", "Mean", "Exponential", "Cauchy", "Beta", "Poisson", "Drawn" };
+
+String engineParamLabel (int e, int k, int c0)
+{
+    const auto& sp = engineSpecs()[(size_t) jlimit (0, kNumEngines, e)];
+    const String base = k < (int) sp.p.size() ? String (sp.p[(size_t) k].name) : String();
+    if (e == 14 && k >= 1 && k <= 4)   // Maps: A-D mean different things per map
+    {
+        static const char* n[10][4] = { { "A", "B", "C", "D" }, { "K", "-", "-", "-" }, { "X0", "Y0", "-", "-" }, { "A", "B", "-", "-" },
+                                        { "A", "B", "C", "-" }, { "Mult", "Inc", "Mod", "-" }, { "Index", "FB", "Mult", "Inc" },
+                                        { "Param", "-", "-", "-" }, { "R", "-", "-", "-" }, { "A", "B", "-", "-" } };
+        return n[jlimit (0, 9, c0)][k - 1];
+    }
+    if (e == 15 && k <= 1)             // Ecosystems: P1/P2 per model
+    {
+        static const char* n[6][2] = { { "Current", "Eps" }, { "A", "B-Hopf" }, { "F", "Eps" }, { "Prey", "Pred" }, { "Alpha", "Immig" }, { "Step", "K1" } };
+        return n[jlimit (0, 5, c0)][k];
+    }
+    return base;
 }
 
 //==============================================================================
@@ -152,6 +225,8 @@ StringArray destNames()
     for (int b = 0; b < kNumBuses; ++b) s.add (String ("FX ") + kBusNames[b] + " Level");
     for (int b = 0; b < kNumBuses; ++b) for (int sl = 0; sl < kSlotsPerBus; ++sl) for (int k = 0; k < kFxParams; ++k)
         s.add (String ("FX ") + kBusNames[b] + String (sl + 1) + " P" + String (k + 1));
+    for (int i = 0; i < kNumTrig; ++i) s.add ("Trig" + String (i + 1) + " Rate");
+    for (int i = 0; i < kNumTrig; ++i) s.add ("Trig" + String (i + 1) + " Prob");
     jassert (s.size() == kNumDests);
     return s;
 }
@@ -165,7 +240,8 @@ String destGroup (int d)
     if (d < kDestLoopLen) return "Attractors";
     if (d < kDestMaster) return "Global";
     if (d < kDestBusLevel) return "Master";
-    return "FX";
+    if (d < kDestTrigRate) return "FX";
+    return "Triggers";
 }
 
 StringArray sourceNames()
@@ -179,6 +255,7 @@ StringArray sourceNames()
                               "MPE Pressure", "MPE Slide", "MPE Bend" });
     for (int i = 0; i < kNumMacros; ++i) s.add ("Macro " + String (i + 1));
     s.add ("Note Random");
+    for (int i = 0; i < kNumTrig; ++i) s.add ("Trig " + String (i + 1));
     jassert (s.size() == S_Count);
     return s;
 }
@@ -191,6 +268,7 @@ String sourceGroup (int s)
     if (s >= S_Env1 && s < S_Velocity) return "Lane Envelopes";
     if (s >= S_Velocity && s < S_Macro1) return "MIDI / MPE";
     if (s >= S_Macro1 && s < S_NoteRandom) return "Macros";
+    if (s >= S_Trig1 && s < S_Trig1 + kNumTrig) return "Triggers";
     return "Other";
 }
 
@@ -206,6 +284,7 @@ String lfoId (int i, const char* key) { return "LFO" + String (i + 1) + "_" + ke
 String venvId (int i, const char* key) { return "VENV" + String (i + 1) + "_" + key; }
 String attrId (int i, const char* key) { return "ATTR" + String (i + 1) + "_" + key; }
 String slotId (int i, const char* key) { return "S" + String (i + 1) + "_" + key; }
+String trigId (int i, const char* key) { return "TRIG" + String (i + 1) + "_" + key; }
 String fxId (int b, int s, const char* key) { return String ("FX") + kBusNames[b] + String (s + 1) + "_" + key; }
 String busId (int b, const char* key) { return String ("FX") + kBusNames[b] + "_" + key; }
 
@@ -237,6 +316,8 @@ String destParamId (int d, const std::function<int (int)>& engineOfLane)
     if (d == kDestGlide) return "glide";
     if (d < kDestBusLevel) { static const char* m[MD_Count] = { "m_lsg", "m_mg", "m_hsg", "m_satdrive", "m_satmix", "m_thr", "m_ms", "out_gain" }; return m[d - kDestMaster]; }
     if (d < kDestFxParam) return busId (d - kDestBusLevel, "level");
+    if (d >= kDestTrigProb) return trigId (d - kDestTrigProb, "prob");
+    if (d >= kDestTrigRate) return trigId (d - kDestTrigRate, "rate");
     const int i = d - kDestFxParam, b = i / (kSlotsPerBus * kFxParams), s = (i / kFxParams) % kSlotsPerBus, k = i % kFxParams;
     return fxId (b, s, ("p" + String (k + 1)).toRawUTF8());
 }
@@ -323,6 +404,8 @@ AudioProcessorValueTreeState::ParameterLayout createLayout()
         addF (*g, "lfo_looplen", "LFO Loop Len", 0.25f, 16.f, 4.f, 2.f, false, "s");
         addC (*g, "lfo_loopsync", "LFO Loop Sync", { "Free", "Host" }, 0);
         addC (*g, "lfo_loopdiv", "LFO Loop Division", ldivs, 4);
+        StringArray dn; for (int d = 0; d < kNumDists; ++d) dn.add (kDistNames[d]);
+        addC (*g, "nrand_dist", "Note Random Dist", dn, 0);
         layout.add (std::move (g));
     }
 
@@ -344,7 +427,7 @@ AudioProcessorValueTreeState::ParameterLayout createLayout()
         addF (*g, laneId (l, "sub1lev"), P + "Sub1 Lev", 0.f, 1.f, 0.f, 0.f, false, "%");
         addC (*g, laneId (l, "sub2oct"), P + "Sub2 Oct", { "-1", "-2" }, 0);
         addF (*g, laneId (l, "sub2lev"), P + "Sub2 Lev", 0.f, 1.f, 0.f, 0.f, false, "%");
-        addC (*g, laneId (l, "ftype"), P + "Filter Type", { "LPF", "HPF", "BPF", "Notch", "Peak", "Low Shelf", "High Shelf", "All-Pass", "Ladder", "Comb", "Formant", "Phaser" }, 0);
+        addC (*g, laneId (l, "ftype"), P + "Filter Type", { "LPF", "HPF", "BPF", "Notch", "Peak", "Low Shelf", "High Shelf", "All-Pass", "Ladder", "Comb", "Formant", "Phaser", "Friction", "Spring" }, 0);
         addC (*g, laneId (l, "fslope"), P + "Filter Slope", slopes, 0);
         addF (*g, laneId (l, "cut"), P + "Cutoff", 20.f, 20000.f, 20000.f, 1000.f, false, "Hz");
         addF (*g, laneId (l, "res"), P + "Res", 0.f, 1.f, 0.1f, 0.f, false, "%");
@@ -403,7 +486,8 @@ AudioProcessorValueTreeState::ParameterLayout createLayout()
         {
             const String P = "LFO" + String (i + 1) + " ";
             addB (*g, lfoId (i, "on"), P + "On", true);
-            addC (*g, lfoId (i, "wave"), P + "Wave", { "Sine", "Triangle", "Saw Up", "Saw Down", "Pulse", "Random S&H", "Random Smooth", "Perlin" }, 0);
+            addC (*g, lfoId (i, "wave"), P + "Wave", { "Sine", "Triangle", "Saw Up", "Saw Down", "Pulse", "Random S&H", "Random Smooth", "Perlin",
+                                                       "Brownian", "Geo Brownian", "Noise Ring", "Markov" }, 0);
             addF (*g, lfoId (i, "rate"), P + "Rate", 0.01f, 50.f, 1.f, 2.f, false, "Hz");
             addC (*g, lfoId (i, "sync"), P + "Sync", { "Free", "Host" }, 0);
             addC (*g, lfoId (i, "div"), P + "Division", divs, 5);
@@ -420,6 +504,8 @@ AudioProcessorValueTreeState::ParameterLayout createLayout()
                 addC (*g, lfoId (i, "link"), P + "Link", i == 0 ? StringArray { "Off", "Dual", "Quad", "Oct" } : (i == 4 ? StringArray { "Off", "Dual", "Quad" } : StringArray { "Off", "Dual" }), 0);
                 addC (*g, lfoId (i, "linkrel"), P + "Link Mode", { "Sync", "Phase", "Divide", "Pendulum", "Mirror" }, 1);
             }
+            StringArray dn; for (int d = 0; d < kNumDists; ++d) dn.add (kDistNames[d]);
+            addC (*g, lfoId (i, "dist"), P + "Dist", dn, 0);
         }
         layout.add (std::move (g));
 
@@ -446,7 +532,7 @@ AudioProcessorValueTreeState::ParameterLayout createLayout()
         layout.add (std::move (v));
 
         auto a = std::make_unique<AudioProcessorParameterGroup> ("attr", "Attractors", "|");
-        StringArray at; for (int t = 0; t < 5; ++t) at.add (kAttrTypeNames[t]);
+        StringArray at; for (int t = 0; t < kNumAttrTypes; ++t) at.add (kAttrTypeNames[t]);
         for (int i = 0; i < kNumAttr; ++i)
         {
             const String P = "Attr" + String (i + 1) + " ";
@@ -464,6 +550,27 @@ AudioProcessorValueTreeState::ParameterLayout createLayout()
             addB (*a, attrId (i, "retrig"), P + "Retrig", false);
         }
         layout.add (std::move (a));
+
+        // v0.5: stochastic trigger generators (Dust, GaussTrig, CoinGate, LorenzTrig)
+        auto t = std::make_unique<AudioProcessorParameterGroup> ("trig", "Triggers", "|");
+        StringArray dn; for (int d = 0; d < kNumDists; ++d) dn.add (kDistNames[d]);
+        for (int i = 0; i < kNumTrig; ++i)
+        {
+            const String P = "Trig" + String (i + 1) + " ";
+            addB (*t, trigId (i, "on"), P + "On", true);
+            addC (*t, trigId (i, "mode"), P + "Mode", { "Dust", "Gauss", "Coin", "Lorenz", "Clock" }, 0);
+            addF (*t, trigId (i, "rate"), P + "Rate", 0.05f, 50.f, 2.f, 2.f, false, "Hz");
+            addC (*t, trigId (i, "sync"), P + "Sync", { "Free", "Host" }, 0);
+            addC (*t, trigId (i, "div"), P + "Division", divs, 7);
+            addF (*t, trigId (i, "dev"), P + "Deviation", 0.f, 1.f, 0.3f, 0.f, false, "%");
+            addF (*t, trigId (i, "prob"), P + "Probability", 0.f, 1.f, 1.f, 0.f, false, "%");
+            addC (*t, trigId (i, "shape"), P + "Output", { "Gate", "Decay", "S&H", "S&H Decay" }, 1);
+            addF (*t, trigId (i, "len"), P + "Length", 1.f, 2000.f, 120.f, 150.f, false, "ms");
+            addC (*t, trigId (i, "dist"), P + "Dist", dn, 0);
+            addC (*t, trigId (i, "action"), P + "Action", { "None", "Retrig Envs", "Restart LFOs", "Stutter" }, 0);
+            addF (*t, trigId (i, "level"), P + "Level", 0.f, 1.f, 1.f, 0.f, false, "%");
+        }
+        layout.add (std::move (t));
     }
 
     // ---------------- matrix ----------------

@@ -9,19 +9,33 @@ The result is an instrument that behaves more like a physical object than an osc
 | Block | Contents |
 | --- | --- |
 | Voices | Up to 64 voices. Each note plays through **3 independent lanes**. |
-| Engines | **12 chaotic systems**, plus *None* to switch a lane off. |
-| Per lane | 2 sub-oscillators, analogue drift, a 12-type filter, an envelope with 4 modes (ADSR, Vactrol, LFO, VENV), a 5-band EQ with 4 snapshots and morph, drive with 5 flavours, 3 sends. |
-| Modulation | 8 linkable LFOs, 4 drawable envelopes (VENV), 4 attractors, a 24-route matrix, a drawable keytrack, 5 macros, MIDI learn and MPE. |
+| Engines | **17 chaotic and stochastic systems**, plus *None* to switch a lane off. |
+| Per lane | 2 sub-oscillators, analogue drift, a 14-type filter, an envelope with 4 modes (ADSR, Vactrol, LFO, VENV), a 5-band EQ with 4 snapshots and morph, drive with 5 flavours, 3 sends. |
+| Modulation | 8 linkable LFOs, 4 drawable envelopes (VENV), 4 attractors of 12 types, 4 random trigger generators, 10 distributions (one drawable), a 24-route matrix, a drawable keytrack, 5 macros, MIDI learn and MPE. |
 | Master | EQ with analyser, saturator, compressor with sidechain, width and a true-peak limiter. |
-| Effects | 3 buses with 3 slots (6 effect types) and the **DELUGE FX** rack with the effects from the open-source Synthstrom Audible Deluge firmware. |
-| Presets | 256 factory presets in 17 categories, with tags, favourites and search. |
+| Effects | 3 buses with 3 slots (12 effect types, 4 of them spectral) and the **DELUGE FX** rack with the effects from the open-source Synthstrom Audible Deluge firmware. |
+| Presets | 288 factory presets in 20 categories, with tags, favourites and search. |
 | Formats | VST3 and a standalone application for Linux, Windows and macOS (universal). |
 
 ## Origin {#intro-origen}
 
 Caosmo is a functional reimplementation of the concept described in the public documentation of **Fragua** by Pura Belia: a three-lane-per-note chaos synthesizer with twelve engines. All the code, names, interface, presets and this manual are original; it contains no code or assets from Fragua. It is an independent work with no connection to Pura Belia.
 
-## What's new in version 0.4 {#intro-novedades}
+## What's new in version 0.5 {#intro-novedades}
+
+Everything new comes from studying the SuperCollider documentation for chaos and randomness generators:
+
+- Five new engines: **Gendy** (Xenakis), **Maps** (ten chaotic maps), **Ecosystems** (neurons, chemical clocks, predators and prey), **Noise** and **Membrane** (a ball bouncing on a modal body).
+- Logistic/Henon can iterate in time with the note and play in tune.
+- Four random **trigger generators** (Dust, Gauss, Coin, Lorenz, Clock) with direct actions.
+- Ten probability **distributions**, one of them drawable, for LFOs, triggers and Note Random.
+- LFO waves with memory: Brownian, Geo Brownian, Noise Ring and Markov.
+- **Friction** and **Spring** filters, seven new attractor types and six effects: Diffuse, Mag Noise, Rand Comb, Noise Synth, Wave Loss and Squiz.
+- 32 new presets in three categories: Stochastic, Neurons & Maps and Bouncing Bodies.
+
+Nothing breaks: 0.4 presets and projects sound the same.
+
+## What's new in version 0.4 {#intro-novedades-04}
 
 - **DELUGE FX** rack with Mod FX, EQ, destruction, delay, three reverbs, compressor and stutter from the Deluge firmware.
 - Caosmo is now distributed under the **GNU GPL v3**.
@@ -37,7 +51,7 @@ Caosmo is a functional reimplementation of the concept described in the public d
 
 # Installation {#instalacion}
 
-Each package contains the `Caosmo.vst3` plugin, the standalone version, the licence and the manual. The 256 presets are built into the plugin: there is nothing else to copy.
+Each package contains the `Caosmo.vst3` plugin, the standalone version, the licence and the manual. The 288 presets are built into the plugin: there is nothing else to copy.
 
 | System | Copy `Caosmo.vst3` to | Standalone |
 | --- | --- | --- |
@@ -120,7 +134,7 @@ Every note you play takes a **voice**. Inside the voice, each lane that has an e
 
 1. **Engine**: produces the signal by solving its system, tuned to the note if it is a pitched engine.
 2. **Sub 1** (another instance of the same engine, 1–3 octaves down) and **Sub 2** (a sine 1–2 octaves down) are added to the engine.
-3. **Filter** with 12 types.
+3. **Filter** with 14 types.
 4. **Envelope** (VCA, and in LPG mode the filter too), scaled by velocity.
 
 The voices of each lane are then summed on the **lane bus**, where **EQ**, **drive**, **width**, **bass mono**, **pan**, **level** and the **sends** to FX buses A–C are applied. The lane buses and the FX returns are summed and pass through the **DELUGE FX** rack (if enabled) and the **master chain**.
@@ -220,7 +234,7 @@ Caosmo has three identical lanes (L1, L2, L3). Each note plays through every lan
 
 | Parameter | Range (default) | What it does |
 | --- | --- | --- |
-| Engine | None + 12 engines (L1 Kuramoto, L2 and L3 None) | The lane's engine. The settings of all 12 engines are kept: you can switch engines and come back without losing anything. |
+| Engine | None + 17 engines (L1 Kuramoto, L2 and L3 None) | The lane's engine. The settings of all 17 engines are kept: you can switch engines and come back without losing anything. |
 | PWR | On/Off (On) | Switches the lane off: it stops being computed and its envelope stops modulating. |
 | S / M | Solo / Mute | Isolate or silence the lane while it keeps running (its sources keep modulating). |
 | MIDI Ch | Omni, 1–16 (Omni) | Channel that triggers the lane. Ignored when MPE is on. |

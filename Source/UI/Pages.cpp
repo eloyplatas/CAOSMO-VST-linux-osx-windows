@@ -9,7 +9,9 @@ namespace
     template <typename T> T* own (OwnedArray<Component>& o, T* c) { o.add (c); return c; }
     const float kFxDefaults[kNumFxTypes][kFxParams] = {
         { 0.5f, 0.5f, 0.5f, 0.5f, 0.8f }, { 0.6f, 0.5f, 0.1f, 0.4f, 0.8f }, { 0.75f, 0.4f, 0.5f, 0.2f, 0.7f }, { 0.6f, 0.3f, 0.8f, 0.5f, 0.5f },
-        { 0.5f, 0.5f, 0.4f, 0.5f, 0.8f }, { 0.5f, 0.6f, 0.5f, 0.3f, 0.6f }, { 0.5f, 0.8f, 0.5f, 0.5f, 0.5f } };
+        { 0.5f, 0.5f, 0.4f, 0.5f, 0.8f }, { 0.5f, 0.6f, 0.5f, 0.3f, 0.6f }, { 0.5f, 0.8f, 0.5f, 0.5f, 0.5f },
+        { 0.6f, 0.2f, 0.8f, 0.5f, 0.5f }, { 0.5f, 0.4f, 0.8f, 0.5f, 0.5f }, { 0.4f, 0.25f, 0.3f, 0.8f, 0.5f }, { 0.35f, 0.4f, 0.8f, 0.5f, 0.5f },
+        { 0.3f, 0.2f, 0.8f, 0.5f, 0.5f }, { 0.2f, 0.2f, 0.7f, 0.5f, 0.5f } };
 
     // full lane EQ editor in its own window
     class EqEditor : public Component
@@ -91,7 +93,8 @@ void LaneColumn::buildMotor()
     const auto& sp = engineSpecs()[(size_t) jmax (0, e)];
     motor.title = e > 0 ? String ("MOTOR  /  ") + sp.name : String ("MOTOR");
     motor.stripe = Theme::engine (e);
-    for (auto& p : sp.p) motor.knob (engId (lane, e, p.key), p.name)->setColour (Theme::engine (e));
+    motorKnobs.clear(); motorChoice0 = -1;
+    for (auto& p : sp.p) { auto* k = motor.knob (engId (lane, e, p.key), p.name); k->setColour (Theme::engine (e)); motorKnobs.add (k); }
     for (auto& c : sp.c) motor.choice (engId (lane, e, c.key), c.name)->setSize (96, 40);
     header.stripe = Theme::engine (e);
     header.repaint(); motor.repaint();
@@ -117,6 +120,11 @@ void LaneColumn::timerCallback()
     bool changed = false;
     if (e != engine) { engine = e; buildMotor(); changed = true; blurb->repaint(); }
     if (m != envMode) { envMode = m; buildEnv(); changed = true; }
+    if (engine > 0 && ! engineSpecs()[(size_t) engine].c.empty())
+    {   // Maps / Ecosystems: knob names follow the selected map or model
+        const int c0 = ctx.choice (engId (lane, engine, engineSpecs()[(size_t) engine].c[0].key));
+        if (c0 != motorChoice0) { motorChoice0 = c0; for (int k = 0; k < motorKnobs.size(); ++k) motorKnobs[k]->setLabel (engineParamLabel (engine, k, c0)); }
+    }
     for (auto* c : eqChips) c->repaint();
     for (auto* c : scopeChips) c->repaint();
     if (changed && onHeightChanged) onHeightChanged();
@@ -188,6 +196,7 @@ ModulatorsPage::ModulatorsPage (Ctx& c) : ctx (c), loop (c, "LFO BANK  /  LOOP")
         p->knob (lfoId (i, "level"), "Level"); p->knob (lfoId (i, "phase"), "Phase"); p->knob (lfoId (i, "slew"), "Slew"); p->knob (lfoId (i, "skew"), "Skew");
         p->knob (lfoId (i, "afade"), "Atk Fade"); p->knob (lfoId (i, "rfade"), "Rel Fade"); p->choice (lfoId (i, "mode"), "Mode")->setSize (76, 40);
         if ((i & 1) == 0) { p->choice (lfoId (i, "link"), "Link")->setSize (70, 40); p->choice (lfoId (i, "linkrel"), "Link Mode")->setSize (90, 40); }
+        p->choice (lfoId (i, "dist"), "Dist")->setSize (90, 40);
         auto* rt = own (extras, new TextLine (routes (S_Lfo1 + i), 10.f)); routing.add (rt); p->addCustom (rt);
     }
     for (int i = 0; i < kNumVenv; ++i)
@@ -221,6 +230,19 @@ ModulatorsPage::ModulatorsPage (Ctx& c) : ctx (c), loop (c, "LFO BANK  /  LOOP")
         p->knob (attrId (i, "smooth"), "Smooth"); p->knob (attrId (i, "level"), "Level");
         p->choice (attrId (i, "out"), "Out")->setSize (70, 40); p->choice (attrId (i, "mode"), "Mode")->setSize (76, 40);
         auto* rt = own (extras, new TextLine (routes (S_Attr1 + i), 10.f)); routing.add (rt); p->addCustom (rt);
+    }
+    for (int i = 0; i < kNumTrig; ++i)
+    {
+        auto* p = trig.add (new Panel (c, "TRIGGER " + String (i + 1))); body.addAndMakeVisible (p);
+        p->stripe = Theme::c().red;
+        p->chip (trigId (i, "on"), "ON"); assign (p, S_Trig1 + i);
+        auto* lamp = own (extras, new LevelMeter ([this, i] { return ctx.proc.ui.trigVal[i].load(); })); lamp->setSize (10, 40); p->addCustom (lamp);
+        p->choice (trigId (i, "mode"), "Mode")->setSize (80, 40); p->knob (trigId (i, "rate"), "Rate");
+        p->choice (trigId (i, "sync"), "Sync")->setSize (64, 40); p->choice (trigId (i, "div"), "Division")->setSize (76, 40);
+        p->knob (trigId (i, "dev"), "Dev"); p->knob (trigId (i, "prob"), "Prob");
+        p->choice (trigId (i, "shape"), "Output")->setSize (90, 40); p->knob (trigId (i, "len"), "Length"); p->knob (trigId (i, "level"), "Level");
+        p->choice (trigId (i, "dist"), "Dist")->setSize (90, 40); p->choice (trigId (i, "action"), "Action")->setSize (104, 40);
+        auto* rt = own (extras, new TextLine (routes (S_Trig1 + i), 10.f)); routing.add (rt); p->addCustom (rt);
     }
     startTimerHz (8);
 }
@@ -303,6 +325,7 @@ void ModulatorsPage::relayout()
         for (auto* c : attr[k]->flow) if (dynamic_cast<AttractorView*> (c)) c->setSize (jmin (220, cw - 16), 130);
         routing[kNumLfo + kNumVenv + k]->setSize (cw - 16, 26);
     });
+    grid (trig, w > 1300 ? 4 : 2, [&] (int k, int cw) { routing[kNumLfo + kNumVenv + kNumAttr + k]->setSize (cw - 16, 26); });
     body.setSize (w, y + gap);
 }
 
@@ -336,12 +359,14 @@ int MatrixRow::status (Ctx& c, int s)
         if (e <= 0) return 3;
         if (k >= LD_M1 && k <= LD_M6 && k - LD_M1 >= (int) engineSpecs()[(size_t) e].p.size()) return 3;
     }
-    auto modOfSrc = [&] (int x) { if (x >= S_Lfo1 && x < S_Venv1) return x - S_Lfo1; if (x >= S_Venv1 && x < S_Attr1) return 8 + x - S_Venv1; if (x >= S_Attr1 && x < S_Env1) return 12 + x - S_Attr1; return -1; };
+    auto modOfSrc = [&] (int x) { if (x >= S_Lfo1 && x < S_Venv1) return x - S_Lfo1; if (x >= S_Venv1 && x < S_Attr1) return 8 + x - S_Venv1; if (x >= S_Attr1 && x < S_Env1) return 12 + x - S_Attr1;
+                                  if (x >= S_Trig1 && x < S_Trig1 + kNumTrig) return 16 + x - S_Trig1; return -1; };
     auto modOfDst = [&] (int d)
     {
         if (d >= kDestLfoRate && d < kDestVenvTime) return (d - kDestLfoRate) % kNumLfo;
         if (d >= kDestVenvTime && d < kDestAttrRate) return 8 + (d - kDestVenvTime) % kNumVenv;
         if (d >= kDestAttrRate && d < kDestLoopLen) return 12 + (d - kDestAttrRate) % kNumAttr;
+        if (d >= kDestTrigRate && d < kNumDests) return 16 + (d - kDestTrigRate) % kNumTrig;
         return -1;
     };
     const bool polySrc = isPolySourceKind (si)
@@ -354,14 +379,14 @@ int MatrixRow::status (Ctx& c, int s)
     const int a = modOfSrc (si), b = modOfDst (di);
     if (a >= 0 && b >= 0)
     {
-        bool adj[16][16] = {};
+        bool adj[20][20] = {};
         for (int i = 0; i < kNumSlots; ++i)
         {
             const int x = modOfSrc (c.choice (slotId (i, "src"))), y = modOfDst (c.choice (slotId (i, "dst")));
             if (x >= 0 && y >= 0) adj[x][y] = true;
         }
-        bool seen[16] = {}; Array<int> stack { b };
-        while (! stack.isEmpty()) { const int n = stack.removeAndReturn (stack.size() - 1); if (n == a) return 2; if (seen[n]) continue; seen[n] = true; for (int m = 0; m < 16; ++m) if (adj[n][m]) stack.add (m); }
+        bool seen[20] = {}; Array<int> stack { b };
+        while (! stack.isEmpty()) { const int n = stack.removeAndReturn (stack.size() - 1); if (n == a) return 2; if (seen[n]) continue; seen[n] = true; for (int m = 0; m < 20; ++m) if (adj[n][m]) stack.add (m); }
     }
     return 1;
 }
@@ -415,9 +440,13 @@ void MatrixRow::paint (Graphics& g)
     g.setColour (t.dim); g.setFont (FontOptions (10.f)); g.drawText (String (slot + 1), 16, 0, 16, getHeight(), Justification::centred);
 }
 
-MatrixPage::MatrixPage (Ctx& c) : ctx (c), table (c, "MODULATION MATRIX"), keyPanel (c, "KEYTRACK"), macroPanel (c, "MACROS")
+MatrixPage::MatrixPage (Ctx& c) : ctx (c), table (c, "MODULATION MATRIX"), keyPanel (c, "KEYTRACK"), macroPanel (c, "MACROS"), distPanel (c, "DRAWN DISTRIBUTION")
 {
-    for (auto* p : { &table, &keyPanel, &macroPanel }) body.addAndMakeVisible (p);
+    for (auto* p : { &table, &keyPanel, &macroPanel, &distPanel }) body.addAndMakeVisible (p);
+    distEd = std::make_unique<KeyEditor> (c, true); distPanel.addCustom (distEd.get());
+    distPanel.choice ("nrand_dist", "Note Random")->setSize (110, 40);
+    distPanel.addCustom (new TextLine ([] { return String ("Density used by every 'Drawn' choice (LFO, trigger and Note Random dists). Higher = more likely."); }, 10.f));
+    distPanel.owned.add (distPanel.flow.getLast());
     header = std::make_unique<TextLine> ([] { return String ("        SOURCE                                    CC     DESTINATION                                   AMT     POLARITY            CURVE                LAG    FADE IN  FADE OUT  JITTER  QUANT"); }, 10.f);
     table.addAndMakeVisible (*header);
     for (int i = 0; i < kNumSlots; ++i) table.addAndMakeVisible (rows.add (new MatrixRow (c, i)));
@@ -454,7 +483,9 @@ void MatrixPage::relayout()
     const int kh = keyPanel.layoutFlow (sw); keyPanel.setBounds (sx, sy, sw, kh);
     macroRoutes->setSize (sw - 16, 90);
     const int mh = macroPanel.layoutFlow (sw); macroPanel.setBounds (sx, sy + kh + gap, sw, mh);
-    body.setSize (w, jmax (th + gap * 2, sy + kh + mh + gap * 2) + (side ? 0 : 0));
+    distEd->setSize (sw - 16, 110); distPanel.flow.getLast()->setSize (sw - 16, 30);
+    const int dh = distPanel.layoutFlow (sw); distPanel.setBounds (sx, sy + kh + mh + 2 * gap, sw, dh);
+    body.setSize (w, jmax (th + gap * 2, sy + kh + mh + dh + gap * 3));
 }
 
 //==============================================================================

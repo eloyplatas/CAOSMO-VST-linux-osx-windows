@@ -1,4 +1,4 @@
-# The twelve engines {#motores}
+# The twelve original engines {#motores}
 
 Each engine solves a different system. **Pitched engines** scale their time base to the MIDI note; **unpitched engines** run at their own speed and give textures, noise and internal rhythms. To tune the latter, use Sub 2, the Comb or Formant filter, or Gray-Scott's built-in BPF.
 
@@ -16,6 +16,8 @@ Each engine solves a different system. **Pitched engines** scale their time base
 | 10 | Bowed String | Yes | Bowed strings, bells, piano wire | Medium |
 | 11 | Mackey-Glass | Yes | Feedback tones, crackle | Low |
 | 12 | Circle Map | Yes | Gears, intervals that lock | Low |
+
+Engines 13–17 (Gendy, Maps, Ecosystems, Noise and Membrane), added in version 0.5, have their own chapter: *The SuperCollider engines*.
 
 The first six parameters of each engine are the matrix destinations *Motor 1–6*, in the order of the tables below.
 
@@ -114,7 +116,7 @@ The Hénon map (1976) is its two-dimensional cousin:
 
 xₙ₊₁ = 1 − a·xₙ² + yₙ  yₙ₊₁ = b·xₙ
 
-**In Caosmo.** Both maps are iterated **once per sample**. At 48 kHz that produces structured noise: grainy, dusty, with fixed high tones whenever the map falls into a periodic window (r ≈ 3.83, for example, gives a period-3 cycle). It does not follow the note.
+**In Caosmo.** With *Clock* on *Per Sample* (the default) both maps are iterated **once per sample**. At 48 kHz that produces structured noise: grainy, dusty, with fixed high tones whenever the map falls into a periodic window (r ≈ 3.83, for example, gives a period-3 cycle). In that mode it does not follow the note; with the *Note* clocks it does (see the table).
 
 | Parameter | Range (default) | What it does |
 | --- | --- | --- |
@@ -124,6 +126,8 @@ xₙ₊₁ = 1 − a·xₙ² + yₙ  yₙ₊₁ = b·xₙ
 | B | 0–0.4 (0.3) | Second Hénon parameter: how much the map remembers the previous value. |
 | Smooth | 0–1 (0) | Low-pass from 20 kHz down to 200 Hz with level compensation: from hiss to rumble. |
 | Drift | 0–1 (0) | Slow oscillation (about 6 s) of R and A: the noise passes through periodic windows and back. |
+| Iter Oct | −2 – 7 (3) | With a *Note* clock: iterations per note cycle, in octaves. |
+| Clock | Per Sample, Note Step, Note Linear, Note Cubic (Per Sample) | *Per Sample*: one iteration per sample (noise). The *Note* clocks iterate at the note × 2^Iter Oct with stepped, linear or cubic output: the map plays in tune. |
 
 **Sweet spots.** Smooth 0.7 and a resonant BPF tuned to the note: sand percussion (*Sand Snare*). High Drift and Morph halfway: a radio between stations (*Radio Static*).
 

@@ -6,12 +6,16 @@
 namespace cz
 {
 constexpr int kNumLanes = 3;
-constexpr int kNumEngines = 12;      // 1..12 (0 = None)
+constexpr int kNumEngines = 17;      // 1..17 (0 = None)
 constexpr int kMaxEngP = 20;
 constexpr int kMaxEngC = 3;
 constexpr int kNumLfo = 8;
 constexpr int kNumVenv = 4;
 constexpr int kNumAttr = 4;
+constexpr int kNumTrig = 4;
+constexpr int kNumAttrTypes = 12;
+constexpr int kNumDists = 10;
+constexpr int kNumLfoWaves = 12;
 constexpr int kNumSlots = 24;
 constexpr int kNumMacros = 5;
 constexpr int kMotorDests = 6;
@@ -43,7 +47,10 @@ enum MasterDest { MD_LowG, MD_MidG, MD_HighG, MD_SatDrive, MD_SatMix, MD_CompThr
 constexpr int kDestMaster    = kDestGlide + 1;
 constexpr int kDestBusLevel  = kDestMaster + MD_Count;
 constexpr int kDestFxParam   = kDestBusLevel + kNumBuses;
-constexpr int kNumDests      = kDestFxParam + kNumBuses * kSlotsPerBus * kFxParams;
+// v0.5 additions are appended so stored routes keep their indices
+constexpr int kDestTrigRate  = kDestFxParam + kNumBuses * kSlotsPerBus * kFxParams;
+constexpr int kDestTrigProb  = kDestTrigRate + kNumTrig;
+constexpr int kNumDests      = kDestTrigProb + kNumTrig;
 
 // ---------------- sources ----------------
 enum Source
@@ -57,7 +64,8 @@ enum Source
     S_MpePressure, S_MpeSlide, S_MpeBend,
     S_Macro1,
     S_NoteRandom = S_Macro1 + kNumMacros,
-    S_Count
+    S_Trig1,                                   // v0.5: stochastic trigger generators (appended)
+    S_Count = S_Trig1 + kNumTrig
 };
 
 juce::StringArray destNames();
@@ -72,6 +80,7 @@ juce::String lfoId (int i, const char* key);                          // "LFO1_r
 juce::String venvId (int i, const char* key);                         // "VENV1_time"
 juce::String attrId (int i, const char* key);                         // "ATTR1_rate"
 juce::String slotId (int i, const char* key);                         // "S1_src"
+juce::String trigId (int i, const char* key);                         // "TRIG1_rate"
 juce::String fxId (int bus, int slot, const char* key);               // "FXA1_type"
 juce::String busId (int bus, const char* key);                        // "FXA_level"
 
@@ -80,7 +89,7 @@ juce::String destParamId (int dest, const std::function<int (int lane)>& engineO
 
 // effect slot labels
 extern const char* const kFxTypeNames[];
-constexpr int kNumFxTypes = 7;
+constexpr int kNumFxTypes = 13;
 int fxParamCount (int type);
 const char* fxParamName (int type, int k);
 float fxParamValue (int type, int k, float norm);       // maps 0..1 to the effect's real unit
@@ -91,6 +100,12 @@ const char* fxOptLabel (int type, bool on);
 // attractor modulator labels
 extern const char* const kAttrTypeNames[];
 const char* attrPName (int type, int k);
+
+// random distributions (index into kDistNames)
+extern const char* const kDistNames[];
+
+// engine knob labels that depend on the selected model/map (falls back to the spec name)
+juce::String engineParamLabel (int engine, int k, int choice0);
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 

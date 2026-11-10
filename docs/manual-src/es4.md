@@ -26,7 +26,7 @@ Las flechas de la barra superior recorren la lista filtrada.
 
 Un preset guarda todos los parámetros, las rutas (incluidas las creadas con MIDI Learn), las cuatro formas VENV, la curva de keytrack y los snapshots de EQ. No guarda las preferencias de interfaz. *Settings → OPEN PRESETS FOLDER* abre la carpeta de presets.
 
-## Las 17 categorías {#presets-categorias}
+## Las 20 categorías {#presets-categorias}
 
 | Categoría | Presets | Qué encontrarás |
 | --- | --- | --- |
@@ -47,6 +47,9 @@ Un preset guarda todos los parámetros, las rutas (incluidas las creadas con MID
 | Signal Decay | 16 | Bucles inestables, frequency shifter realimentado, degradación. |
 | Warehouse | 16 | Texturas de techno: LFOs enlazados, *gates* sincronizados, stutter. |
 | Living Machines | 16 | Dieciséis moduladores conectados entre sí: sistemas que se autoorganizan. |
+| Stochastic | 12 | Gendy, Noise y disparos aleatorios: Xenakis, lluvia de Poisson, relojes humanos, secuencias a cara o cruz. |
+| Neurons & Maps | 12 | Los mapas de SuperCollider afinados y los modelos de Ecosystems: neuronas, relojes químicos, presas y depredadores. |
+| Bouncing Bodies | 8 | Membrane: pelotas que rebotan sobre tambores, barras y campanas. |
 
 El listado completo está en el apéndice.
 
@@ -116,11 +119,19 @@ Para más vida: Drift Pitch **Subtle** y, en L2, el mismo motor con Ratio **Gold
 3. Matriz: *VENV 1 → L1 Motor 1* (Chaos), Amount **0,7**.
 4. Mantén una nota: el tono se desdobla en suboctavas y acaba en turbulencia. *Aftertouch → L1 Motor 1* con Amount **0,2** te deja empujarlo en directo.
 
+## Lluvia afinada con disparos de Poisson {#tut-lluvia}
+
+1. L1 **Noise**: Type **Dust2**, Density **200**, Key BPF **0,8**, Q **18**.
+2. ENV GEN: Attack **5 ms**, Release **1 s**. FILTER: **Ladder**, Cutoff **2 kHz**, Res **40 %**.
+3. MODULATORS → TRIGGER 1: Mode **Dust**, Rate **6 Hz**, Output **S&H Decay**, Length **150 ms**, Dist **Beta**.
+4. Matriz: *Trig 1 → L1 Cutoff*, Amount **0,4**, y *Trig 1 → L1 Motor 5* (Q), Amount **0,2**.
+5. *Macro 1 → Trig1 Prob*: con la macro cierras o abres la lluvia. Para que cada nota tenga otro carácter, *Note Random → L1 Motor 2* con Note Random Dist en **Gauss**.
+
 # Rendimiento y CPU {#rendimiento}
 
 El coste depende de **voces × capas × motor**. Algunas pautas:
 
-- Los motores más ligeros son Logistic/Henon, Duffing, Sprott, Chua y Circle Map. Los más pesados, Lorenz Additive (con Engine HQ), Wave Grains con Count alto, Kuramoto con 12 osciladores y Gray-Scott.
+- Los motores más ligeros son Maps, Noise, Logistic/Henon, Duffing, Sprott, Chua y Circle Map. Los más pesados, Lorenz Additive (con Engine HQ), Wave Grains con Count alto, Kuramoto con 12 osciladores y Gray-Scott.
 - **Sub 1** duplica el coste del motor de esa capa; **Sub 2** es gratis.
 - Los moduladores **Poly** cuestan una instancia por voz.
 - Baja **Voices** a lo que necesitas: 8 suele bastar para pads, 1–4 para bajos y leads.
@@ -147,7 +158,7 @@ El coste depende de **voces × capas × motor**. Algunas pautas:
 
 # Cómo se hizo {#comosehizo}
 
-Caosmo se construyó en cuatro versiones, de un núcleo que se podía tocar a un instrumento completo con efectos y binarios para tres sistemas.
+Caosmo se construyó en cinco versiones, de un núcleo que se podía tocar a un instrumento completo con efectos y binarios para tres sistemas.
 
 ## Investigación {#hizo-investigacion}
 
@@ -156,7 +167,7 @@ El punto de partida fue la documentación pública de Fragua: su arquitectura de
 ## Arquitectura del código {#hizo-arquitectura}
 
 - **Lenguaje y framework**: C++ sobre JUCE 8.0.4, compilado con CMake.
-- **Parámetros**: un único árbol de estado con más de mil parámetros automatizables. Los de los doce motores existen siempre en cada capa, por eso cambiar de motor no pierde ajustes.
+- **Parámetros**: un único árbol de estado con más de mil parámetros automatizables. Los de los diecisiete motores existen siempre en cada capa, por eso cambiar de motor no pierde ajustes.
 - **Motores**: cada sistema se integra por muestra, la mayoría con Runge-Kutta de cuarto orden. Los motores con altura escalan su paso de integración con la frecuencia de la nota, con un tope para seguir estables en los agudos; algunos (Sprott, Chua) se calibraron midiendo su periodo real con el banco de pruebas para que la nota caiga donde debe. Mackey-Glass incluye un detector de periodo que corrige el retardo en tiempo real.
 - **Protección numérica**: cada motor comprueba su estado en cada muestra y se reinicia si una variable se dispara.
 - **Modulación**: se calcula en bloques cortos. Las fuentes por nota viven dentro de cada voz; las globales se comparten. La matriz decide en cada bloque qué rutas son aplicables a cada destino.
@@ -170,7 +181,7 @@ El audio se convierte al punto fijo de 32 bits del Deluge, se procesa en bloques
 
 ## Presets {#hizo-presets}
 
-Los 256 presets se escriben como texto: cada línea fija los parámetros que difieren del patch inicial. Un generador los carga en el motor real, los renderiza, mide su nivel RMS y su pico verdadero, los nivela, comprueba la evolución temporal y los empaqueta dentro del plugin. Los 128 presets experimentales los genera un script que combina reglas de diseño por categoría (qué motores, qué moduladores conectados entre sí, qué macros).
+Los 288 presets se escriben como texto: cada línea fija los parámetros que difieren del patch inicial. Un generador los carga en el motor real, los renderiza, mide su nivel RMS y su pico verdadero, los nivela, comprueba la evolución temporal y los empaqueta dentro del plugin. Los 128 presets experimentales y los 32 de la versión 0.5 los generan scripts que combina reglas de diseño por categoría (qué motores, qué moduladores conectados entre sí, qué macros).
 
 ## Pruebas {#hizo-pruebas}
 
@@ -215,6 +226,7 @@ Todos los parámetros son automatizables. En el DAW aparecen con un prefijo que 
 | LFO1–8 | LFO3 Rate | LFOs |
 | VENV1–4 | VENV1 Time | Envolventes dibujables |
 | Attr1–4 | Attr2 P1 | Atractores |
+| Trig1–4 | Trig3 Rate | Disparos aleatorios |
 | Slot1–24 | Slot5 Amount | Rutas de la matriz |
 | Master / Comp / Sat / Limiter | Comp Thresh | Cadena master |
 | FX A/B/C | FX B Slot2 P1 | Buses de efectos |
@@ -231,6 +243,7 @@ Para automatizar el sonido sin tocar presets, usa las **macros**: tienen nombres
 | 0.2 | Vactrol y VENV, atractores, enlaces de LFO y Loop Lock, EQ con snapshots, cadena master, buses FX, navegador con etiquetas, 128 presets. |
 | 0.3 | 128 presets experimentales y evolutivos. |
 | 0.4 | Rack DELUGE FX, licencia GPL v3, Windows y macOS, latencia constante, manual completo. |
+| 0.5 | Generadores de SuperCollider: motores Gendy, Maps, Ecosystems, Noise y Membrane; disparos aleatorios; distribuciones; ondas de LFO con memoria; filtros Friction y Spring; siete atractores; seis efectos espectrales y de ciclo; 32 presets. |
 
 ## Licencia {#ap-licencia}
 
@@ -247,4 +260,5 @@ Caosmo es software libre: puedes usarlo, estudiarlo, modificarlo y redistribuirl
 | Freeverb | Jezar at Dreampoint, dominio público. |
 | Framework | JUCE 8.0.4, AGPLv3. |
 | Validación | pluginval, de Tracktion. |
-| Sistemas dinámicos | Kuramoto (1975), Duffing (1918), Sprott (1997), Lorenz (1963), Rössler (1976), May (1976), Hénon (1976), Chua (1983), Gray y Scott (1983), Mackey y Glass (1977), Arnold (1961). |
+| Generadores de la 0.5 | Reimplementados a partir de SuperCollider (GPL v2 o posterior): Gendy1 (Nick Collins, a partir de Iannis Xenakis), los ChaosGen y PV_ del núcleo, SLUGens (Nick Collins), MCLDUGens (Dan Stowell: Friction, TBall, WaveLoss, Squiz), ChaosUGens (Till Bovermann) y BhobUGens (GaussTrig, LorenzTrig). |
+| Sistemas dinámicos | Kuramoto (1975), Duffing (1918), Sprott (1997), Lorenz (1963), Rössler (1976), May (1976), Hénon (1976), Chua (1983), Gray y Scott (1983), Mackey y Glass (1977), Arnold (1961), Xenakis (1991), Pickover (1994), Chirikov (1979), Devaney (1984), FitzHugh (1961) y Nagumo (1962), Prigogine y Lefever (1968), Field y Noyes (1974), Lotka (1925) y Volterra (1926), Arneodo, Coullet y Tresser (1981), Ludwig, Jones y Holling (1978). |

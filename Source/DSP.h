@@ -158,6 +158,8 @@ struct VoiceFilter
     Delay comb[2]; float cD = 100, cFb = 0;
     SVF fs[2][3]; SVFCoefs fc[3]; float fGain[3] = { 1.f, 0.7f, 0.45f };
     float ap[2][4] = {}; float apA[4] = {}; float phFb = 0, phLast[2] = {};
+    struct Fric { float V = 0, belt = 0, x = 0, dx = 0; } fr[2]; float frK = 0, frMu = 0, frDamp = 0;     // Friction (MCLDUGens, Dan Stowell)
+    struct Spr { float x = 0, v = 0; } spr[2]; float spW2 = 0, spDamp = 0, spNl = 0, spGain = 1;            // Spring: hardening mass-spring
 
     void prepare (float s) { sr = s; comb[0].init ((int) (s / 18.f) + 8); comb[1].init ((int) (s / 18.f) + 8); reset(); }
     void reset()
@@ -167,7 +169,7 @@ struct VoiceFilter
             for (auto& f : svf[c]) f.reset();
             for (auto& f : fs[c]) f.reset();
             for (int i = 0; i < 4; ++i) { lad[c][i] = 0; ap[c][i] = 0; }
-            ladY[c] = phLast[c] = 0; comb[c].clear();
+            ladY[c] = phLast[c] = 0; comb[c].clear(); fr[c] = Fric(); spr[c] = Spr();
         }
     }
     void setup (int t, int slope, float cut, float res)
@@ -198,6 +200,16 @@ struct VoiceFilter
                     float f = F[i][k] + (F[i + 1][k] - F[i][k]) * fr;
                     fc[k] = svfMake (2, f, sr, 2.5f + res * 10.f);
                 }
+            } break;
+            case 12:
+            {   // mass on a moving belt: Cutoff sets the spring's natural frequency, Res the dry friction (stick-slip)
+                const float w = k2Pi * clampf (cut, 16.f, sr * 0.2f) / sr;
+                frK = w * w; frDamp = 2.f * 0.05f * w; frMu = 1e-5f * std::pow (3000.f, res);
+            } break;
+            case 13:
+            {   // driven mass-spring with a hardening (Duffing) spring: Res lowers damping and raises the non-linearity
+                const float w = k2Pi * clampf (cut, 16.f, sr * 0.2f) / sr;
+                spW2 = w * w; spDamp = w * (1.2f - 1.15f * res); spNl = 40.f * res * res; spGain = spW2 * (0.6f + 2.f * res);
             } break;
             default:
             {
@@ -236,6 +248,26 @@ struct VoiceFilter
                 float o = 0;
                 for (int k = 0; k < 3; ++k) o += fs[ch][k].tick (x, fc[k]) * fGain[k];
                 return o * 3.f;
+            }
+            case 12:
+            {
+                Fric& f = fr[ch];
+                const float oldBelt = f.belt, oldV = f.V;
+                f.belt = x; f.V = f.belt - oldBelt; const float acc = f.V - oldV;
+                const float rel = f.dx - f.V, Ff = rel > 0.f ? frMu : (rel < 0.f ? -frMu : 0.f);
+                const float Fs = acc - frDamp * f.V - frK * f.x;
+                if (std::fabs (Fs) < frMu) f.dx = f.V; else f.dx += Fs - Ff;
+                f.x += f.dx;
+                if (! std::isfinite (f.x) || std::fabs (f.x) > 8.f) f = Fric();
+                return clampf (f.x, -4.f, 4.f);
+            }
+            case 13:
+            {
+                Spr& q = spr[ch];
+                const float k = spW2 * (1.f + spNl * q.x * q.x);
+                q.v += spGain * x - k * q.x - spDamp * q.v; q.x += q.v;
+                if (! std::isfinite (q.x) || std::fabs (q.x) > 20.f) q = Spr();
+                return clampf (q.x, -4.f, 4.f);
             }
             default:
             {

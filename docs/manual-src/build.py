@@ -6,19 +6,19 @@ import markdown
 LANG = sys.argv[1]
 HERE = pathlib.Path(__file__).parent
 T = {
-    'es': dict(title='Manual de usuario', sub='Sintetizador polifónico de caos', ver='Versión 0.4 · noviembre de 2026',
-               toc='Índice', foot='Caosmo 0.4 · Manual de usuario', lic='Software libre bajo la GNU GPL v3',
+    'es': dict(title='Manual de usuario', sub='Sintetizador polifónico de caos', ver='Versión 0.5 · noviembre de 2026',
+               toc='Índice', foot='Caosmo 0.5 · Manual de usuario', lic='Software libre bajo la GNU GPL v3',
                flow=['Capa 1', 'Capa 2', 'Capa 3', 'motor · subs · filtro · env', 'Bus de capa', 'EQ · drive · width · pan',
                      'Buses FX A–C', 'Suma', 'DELUGE FX', 'Cadena master', 'Salida', 'envíos', 'retorno', 'por voz', 'por capa'],
                cat='Categoría'),
-    'en': dict(title='User Manual', sub='Polyphonic chaos synthesizer', ver='Version 0.4 · November 2026',
-               toc='Contents', foot='Caosmo 0.4 · User Manual', lic='Free software under the GNU GPL v3',
+    'en': dict(title='User Manual', sub='Polyphonic chaos synthesizer', ver='Version 0.5 · November 2026',
+               toc='Contents', foot='Caosmo 0.5 · User Manual', lic='Free software under the GNU GPL v3',
                flow=['Lane 1', 'Lane 2', 'Lane 3', 'engine · subs · filter · env', 'Lane bus', 'EQ · drive · width · pan',
                      'FX buses A–C', 'Sum', 'DELUGE FX', 'Master chain', 'Output', 'sends', 'return', 'per voice', 'per lane'],
                cat='Category'),
 }[LANG]
 
-src = '\n\n'.join((HERE / f'{LANG}{i}.md').read_text() for i in range(1, 5))
+src = '\n\n'.join((HERE / f'{LANG}{i}.md').read_text() for i in ('1', '2', '2b', '3', '4'))
 
 # ---- signal-flow figure (inline SVG, print colours) ----
 f = T['flow']
@@ -89,7 +89,7 @@ cover = f'''<section class="cover">
 <div class="mark"><svg viewBox="0 0 200 200" width="150" height="150">{''.join(f'<ellipse cx="100" cy="100" rx="{88-i*9}" ry="{30+i*4}" transform="rotate({i*23} 100 100)" fill="none" stroke="#6b4fd8" stroke-opacity="{0.25+i*0.08}" stroke-width="1.2"/>' for i in range(8))}<circle cx="100" cy="100" r="5" fill="#6b4fd8"/></svg></div>
 <h1 class="ct">CAOSMO</h1><div class="cs">{T["sub"]}</div><div class="cm">{T["title"]}</div>
 <div class="cv">{T["ver"]}<br>Eloy Platas<br>{T["lic"]}</div></section>'''
-head = f'<!doctype html><html lang="{LANG}"><head><meta charset="utf-8"><title>Caosmo 0.4 — {T["title"]}</title><style>{css}</style></head>'
+head = f'<!doctype html><html lang="{LANG}"><head><meta charset="utf-8"><title>Caosmo 0.5 — {T["title"]}</title><style>{css}</style></head>'
 (HERE / f'cover_{LANG}.html').write_text(f'{head}<body>{cover}</body></html>')
 (HERE / f'body_{LANG}.html').write_text(f'{head}<body><section class="toc"><h1 class="tocH">{T["toc"]}</h1>{"".join(toc)}</section><main>{body}</main></body></html>')
 (HERE / f'foot_{LANG}.txt').write_text(T['foot'])

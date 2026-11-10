@@ -2,7 +2,7 @@
 
 ## FILTER {#filtro}
 
-Each lane has a stereo, per-voice filter with twelve types. The state-variable filters (SVF, Simper's design) stay stable even when the cutoff is modulated at audio rate.
+Each lane has a stereo, per-voice filter with fourteen types. The state-variable filters (SVF, Simper's design) stay stable even when the cutoff is modulated at audio rate.
 
 | Type | How it works | Res controls |
 | --- | --- | --- |
@@ -18,10 +18,12 @@ Each lane has a stereo, per-voice filter with twelve types. The state-variable f
 | Comb | Comb filter: a 1/cutoff delay with feedback. Tuned to Cutoff, not to the note | Feedback (up to 0.97) |
 | Formant | Three bands at vowel frequencies; Cutoff sweeps A → E → I → O → U | Narrowness of the formants |
 | Phaser | Four staggered all-passes mixed with the dry signal | Feedback |
+| Friction | A mass on a belt that sticks and slips (see *Friction and Spring filters*) | Dry friction |
+| Spring | A mass on a hardening non-linear spring | Less damping, more non-linearity |
 
 | Parameter | Range (default) | What it does |
 | --- | --- | --- |
-| Filter Type | The 12 types (LPF) | Type. |
+| Filter Type | The 14 types (LPF) | Type. |
 | Filter Slope | 12, 24, 36, 48 dB (12) | Number of stages for LPF, HPF, BPF, Notch and All-Pass. The other types have a fixed slope. |
 | Cutoff | 20 Hz – 20 kHz (20 kHz) | Cutoff or centre. Per-note modulatable. |
 | Res | 0–100 % (10 %) | See the table above. |
@@ -129,7 +131,7 @@ Both create a route in the matrix, where you can fine-tune its amount, curve and
 | Parameter | Range (default) | What it does |
 | --- | --- | --- |
 | On | On/Off (On) | Enables the LFO. |
-| Wave | Sine, Triangle, Saw Up, Saw Down, Pulse, Random S&H, Random Smooth, Perlin (Sine) | Shape. *Random S&H*: random steps. *Random Smooth*: interpolated random. *Perlin*: two-octave gradient noise, organic. |
+| Wave | Sine, Triangle, Saw Up, Saw Down, Pulse, Random S&H, Random Smooth, Perlin, Brownian, Geo Brownian, Noise Ring, Markov (Sine) | Shape. *Random S&H*: random steps. *Random Smooth*: interpolated random. *Perlin*: two-octave gradient noise, organic. The last four have memory (see *LFO waves with memory*). |
 | Rate | 0.01–50 Hz (1) | Free-running speed. Modulatable. |
 | Sync | Free, Host (Free) | *Host*: synced to the DAW position (in Global mode with the transport running it follows the ruler). |
 | Division | 8 bars … 1/32, 1/4T, 1/8T, 1/16T, 1/4D, 1/8D (1/4) | Length of one cycle in Host mode. Rate modulation multiplies it by powers of 2. |
@@ -141,6 +143,7 @@ Both create a route in the matrix, where you can fine-tune its amount, curve and
 | Rel Fade | 0–5000 ms (0) | Gradual fade-out after release. |
 | Mode | Global, Poly (Global) | One instance or one per note. |
 | Retrig | On/Off (Off) | Restarts the phase on every note. |
+| Dist | The 10 distributions (Uniform) | Distribution of the values of Random S&H, Random Smooth and the waves with memory. |
 
 ### Links (LINK) {#lfo-link}
 
@@ -206,11 +209,12 @@ Modulators that follow the trajectory of a strange attractor: smooth, never repe
 | Chua | α 8–11 | β 12–18 | Double scroll: alternates between two centres. |
 | Duffing | γ 0.2–0.6 | δ 0.1–0.4 | Forced oscillation with well jumps; Z follows the force. |
 | Sprott B | a 0.6–1.4 | b 0.5–1.5 | A smooth, symmetric attractor. |
+| Henon … ACT | | | Seven new types in version 0.5: see *New attractors*. |
 
 | Parameter | Range (default) | What it does |
 | --- | --- | --- |
 | On | On/Off (On) | Enables the attractor. |
-| Type | See table (1 Lorenz, 2 Rossler, 3 Chua, 4 Duffing) | System. |
+| Type | The 12 types (1 Lorenz, 2 Rossler, 3 Chua, 4 Duffing) | System. |
 | Rate | 0.01–20 Hz (0.5) | Speed. Modulatable. |
 | Sync / Division | Free, Host / divisions (Free / 1 bar) | Speed tied to tempo. |
 | P1 / P2 | 0–100 % (50 %) | Coefficients (see table). |
@@ -253,7 +257,8 @@ Each route takes a source to a destination with its own processing. The **x** at
 | MIDI | Velocity, Release Vel, Keytrack, Mod Wheel, Aftertouch, Pitch Bend, Expression (CC 11), Sustain (CC 64), CC | Velocity, Release Vel and Keytrack |
 | MPE | MPE Pressure, MPE Slide (CC 74), MPE Bend | Yes |
 | Macros | Macro 1–5 | No |
-| Other | Note Random (a fixed random value per note) | Yes |
+| Triggers | Trig 1–4 | No |
+| Other | Note Random (a fixed random value per note, shaped by *Note Random Dist*) | Yes |
 
 ### Destinations {#matriz-destinos}
 
@@ -262,6 +267,7 @@ Each route takes a source to a destination with its own processing. The **x** at
 | Lane 1–3 (per note) | Pitch, Fine, Cutoff, Res, Level, V.Spread, Sub1 Lev, Sub2 Lev, Motor 1–6, Env Att, Env Dec, Env Sus, Env Rel |
 | Lane 1–3 (global only) | Pan, Width, Drive, FX1–3 Send, EQ Morph |
 | Modulators | LFO 1–8 Rate and Level, VENV 1–4 Time and Level, Attr 1–4 Rate and Level |
+| Triggers | Trig 1–4 Rate and Prob |
 | Global | LFO Loop Len, Glide |
 | Master | Master Low Gain, Mid Gain, High Gain, Sat Drive, Sat Mix, Comp Thresh, Master Width, Output Gain |
 | FX | FX A/B/C Level and P1–P5 of each of the 9 slots |
@@ -340,10 +346,10 @@ Three buses (A, B and C) fed by the lane sends. Each bus has three slots in seri
 | Parameter | Range (default) | What it does |
 | --- | --- | --- |
 | Bus Level | −60 to +6 dB (0) | Return level. Modulatable. |
-| Slot Type | Empty, Reverb, Delay, Freq Shift, Granular, Howl, Ring Mod | Effect. |
+| Slot Type | Empty, Reverb, Delay, Freq Shift, Granular, Howl, Ring Mod, Diffuse, Mag Noise, Rand Comb, Noise Synth, Wave Loss, Squiz | Effect. The last six are described in *Spectral and cycle effects*. |
 | Slot On | On/Off (On) | Enables the slot. |
 | P1–P5 | 0–100 % (50 %; P5 80 %) | Effect-dependent parameters. All modulatable. |
-| Option | On/Off (Off) | Delay: Stereo / Ping-Pong. Granular: Live / Freeze. |
+| Option | On/Off (Off) | Delay: Stereo / Ping-Pong. Granular, Diffuse and Rand Comb: Live / Freeze. Noise Synth: Unstable / Stable. Wave Loss: Random / Regular. |
 
 | Effect | P1 | P2 | P3 | P4 | P5 |
 | --- | --- | --- | --- | --- | --- |
